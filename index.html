@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>マイリスト登録</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Noto Sans JP', sans-serif; }
+        
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .modal-animate {
+            animation: fadeIn 0.2s ease-out;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin-slow {
+            animation: spin 1s linear infinite;
+        }
+        
+        /* Background Pattern */
+        .bg-pattern {
+            background-color: #f3f4f6;
+            background-image: radial-gradient(#e5e7eb 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 min-h-screen relative pb-20">
+
+    <!-- Background -->
+    <div class="fixed inset-0 z-0 bg-pattern"></div>
+
+    <!-- Main Container -->
+    <div class="relative z-10 max-w-5xl mx-auto pt-6 px-4">
+        
+        <!-- Header -->
+        <div class="bg-white/90 backdrop-blur-md rounded-t-2xl shadow-sm border-b border-gray-200 p-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-blue-500 rounded-lg text-white">
+                    <i data-lucide="music"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-gray-800 tracking-tight">マイリスト登録</h1>
+                    <p class="text-xs text-gray-500">My Setlist Database</p>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="app.loadFromGAS()" class="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-100 shadow-sm" title="サーバーから最新データを取得して更新">
+                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5" id="refresh-icon"></i>
+                    <span>データ更新</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="bg-white/80 backdrop-blur-sm shadow-xl min-h-[600px] flex flex-col md:flex-row">
+            
+            <!-- Left Column: Input & Singer List -->
+            <div class="w-full md:w-80 bg-white/50 border-r border-gray-200 p-6 flex flex-col gap-6">
+                
+                <!-- Input Form -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                    <h2 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                        <i data-lucide="plus" class="text-blue-500 w-4 h-4"></i> 新規登録
+                    </h2>
+                    <div class="space-y-3">
+                        <div class="relative">
+                            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Singer</label>
+                            <input type="text" id="input-singer" list="singer-options" placeholder="歌唱者名を入力または選択"
+                                class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
+                            <datalist id="singer-options"></datalist>
+                        </div>
+
+                        <div>
+                            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Info</label>
+                            <input type="text" id="input-work" placeholder="作品名"
+                                class="w-full px-3 py-2 mb-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
+                            <input type="text" id="input-artist" placeholder="歌手名"
+                                class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
+                        </div>
+
+                        <div>
+                            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Song</label>
+                            <input type="text" id="input-song" placeholder="曲名 (必須)"
+                                class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
+                        </div>
+
+                        <button onclick="app.addSong()" class="w-full py-2.5 mt-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg shadow-md hover:shadow-lg transition-all active:scale-[0.98]">
+                            リストに追加
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Singer Filter (Dropdown) -->
+                <div class="flex-1 flex flex-col">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">表示フィルター</h3>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                        <label class="block text-xs font-bold text-gray-500 mb-2">歌唱者を選択</label>
+                        <div class="relative">
+                            <select id="singer-filter-select" onchange="app.setActiveTab(this.value)" 
+                                class="w-full pl-3 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer">
+                                <option value="ALL">全ての歌唱者を表示</option>
+                                <!-- Options will be injected here -->
+                            </select>
+                            <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-gray-500">
+                                <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                            </div>
+                        </div>
+                        <div class="mt-2 text-xs text-gray-400 text-right" id="singer-count-display">
+                            <!-- Count display -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Song List -->
+            <div class="flex-1 flex flex-col min-h-[500px]">
+                <!-- Toolbar -->
+                <div class="p-4 border-b border-gray-100 flex items-center justify-between bg-white/50">
+                    <h2 class="text-lg font-bold text-gray-700 flex items-center gap-2" id="list-title">
+                        <i data-lucide="list-plus"></i> All Songs
+                    </h2>
+                    <div class="text-xs text-gray-500" id="song-count">0 tracks</div>
+                </div>
+
+                <!-- Header -->
+                <div class="grid grid-cols-12 gap-2 md:gap-4 px-2 md:px-6 py-2 bg-gray-50/50 text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                    <div class="col-span-1 text-center">No.</div>
+                    <div class="col-span-4 md:col-span-5">Song Title</div>
+                    <div class="col-span-4 md:col-span-4">Information</div>
+                    <div class="col-span-3 md:col-span-2 text-right">Action</div>
+                </div>
+
+                <!-- List Body -->
+                <div id="song-list-container" class="flex-1 overflow-y-auto bg-white/30 custom-scrollbar p-2">
+                    <!-- Dynamic Content -->
+                </div>
+
+                <!-- Pagination -->
+                <div id="pagination-container" class="p-3 border-t border-gray-100 bg-white/50 flex justify-center items-center gap-4 text-sm">
+                    <!-- Dynamic Content -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="bg-white/90 backdrop-blur-md rounded-b-2xl shadow-sm border-t border-gray-200 p-4 flex justify-between items-center gap-2">
+             <div class="flex-1 text-xs text-gray-400 font-mono flex items-center gap-2" id="status-message">
+                <!-- Status text -->
+             </div>
+             
+             <!-- Migration Import Button -->
+             <input type="file" id="file-import" class="hidden" accept=".json" onchange="app.importFile(this)">
+             <button onclick="document.getElementById('file-import').click()" 
+                class="flex items-center gap-2 px-4 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-600 rounded-full font-bold transition-colors active:scale-95" title="JSONファイルを読み込む">
+                <i data-lucide="folder-open" class="w-4 h-4"></i>
+                <span class="hidden sm:inline">取込</span>
+             </button>
+
+             <button onclick="app.saveToGAS()"
+                class="flex items-center gap-2 px-6 py-2.5 bg-gray-800 hover:bg-gray-900 text-white rounded-full font-bold shadow-lg shadow-gray-400/20 transition-all transform hover:-translate-y-0.5 active:scale-95">
+                <i data-lucide="cloud-upload" class="w-4 h-4"></i>
+                <span>同期して保存</span>
+             </button>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    
+    <!-- Custom Dialog (Alert/Confirm replacement) -->
+    <div id="custom-dialog" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 relative modal-animate text-center">
+            <div id="dialog-icon" class="mx-auto w-12 h-12 flex items-center justify-center rounded-full bg-blue-100 text-blue-500 mb-4">
+                <i data-lucide="info"></i>
+            </div>
+            <p id="dialog-message" class="text-sm text-gray-700 font-medium mb-6 whitespace-pre-wrap"></p>
+            <div id="dialog-actions" class="flex gap-2 justify-center">
+                <!-- Buttons injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const app = (() => {
+            // ▼▼▼ GASのウェブアプリURL ▼▼▼
+            const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbwhx-_zhE7IJvRLgOegHpQ5WYqC6cBG3fENWtMa0sEX0Rwnh__dPoS25OPkkU9xvIDp/exec'; 
+            // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+            const ITEMS_PER_PAGE = 10;
+            const initialData = [
+                { id: 1, singer: '月見ヤチヨ', work: 'Orbit', artist: 'yuigot', song: 'Remember' },
+                { id: 2, singer: '月見ヤチヨ', work: 'Orbit', artist: 'Aqu3ra', song: '星降る海' },
+                { id: 3, singer: 'V.A.', work: 'Compilation', artist: 'Unknown', song: '私は、わたしの事が好き。' },
+            ];
+
+            // Local Storage Logic
+            // If data exists, use it. If not, use initialData.
+            let storedData = localStorage.getItem('myMusicList');
+            let songs = storedData ? JSON.parse(storedData) : initialData;
+            
+            let deletedIds = JSON.parse(localStorage.getItem('deletedIds')) || [];
+            let activeTab = 'ALL';
+            let currentPage = 1;
+
+            const els = {
+                singerFilterSelect: document.getElementById('singer-filter-select'),
+                singerCountDisplay: document.getElementById('singer-count-display'),
+                songList: document.getElementById('song-list-container'),
+                songCount: document.getElementById('song-count'),
+                listTitle: document.getElementById('list-title'),
+                singerOptions: document.getElementById('singer-options'),
+                pagination: document.getElementById('pagination-container'),
+                inputs: {
+                    singer: document.getElementById('input-singer'),
+                    work: document.getElementById('input-work'),
+                    artist: document.getElementById('input-artist'),
+                    song: document.getElementById('input-song')
+                },
+                modals: {
+                    dialog: document.getElementById('custom-dialog')
+                },
+                status: document.getElementById('status-message'),
+                refreshIcon: document.getElementById('refresh-icon')
+            };
+
+            // --- Core Functions ---
+            
+            function render() {
+                localStorage.setItem('myMusicList', JSON.stringify(songs));
+                const uniqueSingers = [...new Set(songs.map(s => s.singer).filter(Boolean))];
+                
+                // Update Dropdown if needed
+                if (!els.singerFilterSelect.innerHTML.includes(`value="${activeTab}"`) || els.singerFilterSelect.options.length !== uniqueSingers.length + 1) {
+                    let optionsHtml = `<option value="ALL">全ての歌唱者を表示 (${songs.length})</option>`;
+                    uniqueSingers.forEach(singer => {
+                        const count = songs.filter(s => s.singer === singer).length;
+                        optionsHtml += `<option value="${singer}">${singer} (${count})</option>`;
+                    });
+                    els.singerFilterSelect.innerHTML = optionsHtml;
+                    els.singerFilterSelect.value = activeTab;
+                }
+                
+                els.singerCountDisplay.innerText = `登録数: ${uniqueSingers.length}人`;
+                els.singerOptions.innerHTML = uniqueSingers.map(s => `<option value="${s}"></option>`).join('');
+
+                // Filtering & Pagination
+                const filteredSongs = activeTab === 'ALL' ? songs : songs.filter(s => s.singer === activeTab);
+                const totalPages = Math.ceil(filteredSongs.length / ITEMS_PER_PAGE) || 1;
+                
+                if (currentPage > totalPages) currentPage = totalPages;
+                if (currentPage < 1) currentPage = 1;
+
+                const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
+                const endIdx = startIdx + ITEMS_PER_PAGE;
+                const displaySongs = filteredSongs.slice(startIdx, endIdx);
+
+                els.songCount.innerText = `${filteredSongs.length} tracks`;
+                els.listTitle.innerHTML = activeTab === 'ALL' 
+                    ? '<i data-lucide="list-plus" class="w-5 h-5"></i> All Songs' 
+                    : `<i data-lucide="user" class="w-5 h-5"></i> ${activeTab}`;
+
+                if (displaySongs.length === 0) {
+                    els.songList.innerHTML = `
+                        <div class="h-full flex flex-col items-center justify-center text-gray-400 gap-2 min-h-[200px]">
+                            <i data-lucide="disc" class="w-12 h-12 opacity-20"></i>
+                            <p class="text-sm">No songs found.</p>
+                        </div>
+                    `;
+                } else {
+                    els.songList.innerHTML = displaySongs.map((song, i) => {
+                        const globalIndex = startIdx + i + 1;
+                        const searchUrl = `http://ykr.moe:11059/search_listerdb_filelist.php?anyword=${encodeURIComponent((song.song + ' ' + (song.work||'') + ' ' + (song.artist||'')).trim())}`;
+
+                        return `
+                        <div class="group grid grid-cols-12 gap-2 md:gap-4 px-2 md:px-4 py-3 mb-1 items-center bg-white border border-gray-100 rounded-lg hover:shadow-md hover:border-blue-200 transition-all duration-200">
+                            <div class="col-span-1 text-center text-gray-400 font-mono text-xs md:text-sm group-hover:text-blue-500">
+                                ${globalIndex}
+                            </div>
+                            <div class="col-span-4 md:col-span-5 min-w-0">
+                                <div class="font-bold text-gray-800 text-xs md:text-sm break-words whitespace-normal leading-tight">${song.song}</div>
+                            </div>
+                            <div class="col-span-4 md:col-span-4 min-w-0 flex flex-col justify-center">
+                                <div class="text-[10px] md:text-xs text-gray-600 flex items-center gap-1 flex-wrap">
+                                    <i data-lucide="mic" class="w-3 h-3 text-gray-400 flex-shrink-0"></i>
+                                    <span class="break-words whitespace-normal leading-tight">${song.singer || '-'}</span>
+                                </div>
+                                <div class="text-[10px] text-gray-400 mt-0.5 break-words whitespace-normal leading-tight">
+                                    ${song.artist || ''} ${song.work ? '/ ' + song.work : ''}
+                                </div>
+                            </div>
+                            
+                            <!-- Actions Column (Expanded for mobile readability) -->
+                            <div class="col-span-3 md:col-span-2 flex justify-end items-center gap-1 md:gap-2">
+                                <a href="${searchUrl}" target="_self" rel="noopener noreferrer" 
+                                   class="p-1.5 md:p-2 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg transition-colors border border-green-200 shadow-sm flex-shrink-0" title="検索">
+                                    <i data-lucide="search" class="w-3.5 h-3.5 md:w-4 md:h-4"></i>
+                                </a>
+
+                                <div class="flex items-center gap-0.5 md:gap-1 opacity-100 transition-opacity">
+                                    <div class="flex flex-col gap-0.5">
+                                        <button onclick="app.moveSong(${song.id}, 'up')" class="p-0.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded">
+                                            <i data-lucide="arrow-up" class="w-3 h-3"></i>
+                                        </button>
+                                        <button onclick="app.moveSong(${song.id}, 'down')" class="p-0.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded">
+                                            <i data-lucide="arrow-down" class="w-3 h-3"></i>
+                                        </button>
+                                    </div>
+                                    <button onclick="app.deleteSong(${song.id})" class="p-1.5 md:p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors">
+                                        <i data-lucide="trash-2" class="w-3.5 h-3.5 md:w-4 md:h-4"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        `;
+                    }).join('');
+                }
+
+                if (totalPages > 1) {
+                    els.pagination.innerHTML = `
+                        <button onclick="app.setPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled class="opacity-30"' : 'class="hover:text-blue-600"'}><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+                        <span class="font-mono text-gray-500">Page ${currentPage} / ${totalPages}</span>
+                        <button onclick="app.setPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled class="opacity-30"' : 'class="hover:text-blue-600"'}><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+                    `;
+                    els.pagination.classList.remove('hidden');
+                } else {
+                    els.pagination.classList.add('hidden');
+                }
+
+                lucide.createIcons();
+            }
+
+            // --- Actions ---
+
+            function setActiveTab(tab) {
+                activeTab = tab;
+                currentPage = 1; 
+                render();
+            }
+
+            function setPage(page) {
+                currentPage = page;
+                render();
+            }
+
+            function addSong() {
+                const singer = els.inputs.singer.value.trim();
+                const songName = els.inputs.song.value.trim();
+                if (!songName) {
+                    showDialog('曲名は必須です', 'alert');
+                    return;
+                }
+
+                songs.push({
+                    id: Date.now() + Math.random(),
+                    singer: singer,
+                    work: els.inputs.work.value.trim(),
+                    artist: els.inputs.artist.value.trim(),
+                    song: songName
+                });
+                
+                if (singer) activeTab = singer;
+                els.inputs.song.value = '';
+                els.inputs.work.value = '';
+                els.inputs.artist.value = '';
+                render();
+            }
+
+            function deleteSong(id) {
+                showDialog('本当に削除しますか？', 'confirm', () => {
+                    songs = songs.filter(s => s.id !== id);
+                    if (!deletedIds.includes(id)) {
+                        deletedIds.push(id);
+                        localStorage.setItem('deletedIds', JSON.stringify(deletedIds));
+                    }
+                    render();
+                });
+            }
+
+            function moveSong(id, direction) {
+                const globalIndex = songs.findIndex(s => s.id === id);
+                if (globalIndex === -1) return;
+
+                const filtered = activeTab === 'ALL' ? songs : songs.filter(s => s.singer === activeTab);
+                const visualIndex = filtered.findIndex(s => s.id === id);
+                if (visualIndex === -1) return;
+                
+                let targetVisualIndex = -1;
+                if (direction === 'up' && visualIndex > 0) targetVisualIndex = visualIndex - 1;
+                if (direction === 'down' && visualIndex < filtered.length - 1) targetVisualIndex = visualIndex + 1;
+
+                if (targetVisualIndex !== -1) {
+                    const swapSong = filtered[targetVisualIndex];
+                    const swapGlobalIndex = songs.findIndex(s => s.id === swapSong.id);
+                    [songs[globalIndex], songs[swapGlobalIndex]] = [songs[swapGlobalIndex], songs[globalIndex]];
+                    render();
+                }
+            }
+
+            // --- Migration Feature (File Import) ---
+            
+            function importFile(input) {
+                const file = input.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const importedData = JSON.parse(e.target.result);
+                        if (Array.isArray(importedData)) {
+                            // Merge Strategy: Append new items or Overwrite?
+                            // Let's replace current data to ensure complete migration, 
+                            // but asking user might be better. For now, simple replace.
+                            // Or better: Merge by ID?
+                            // Let's assume Import means "Load this list".
+                            
+                            showDialog(`ファイルから ${importedData.length} 件のデータを読み込みました。\n反映するには「同期して保存」を押してください。`, 'alert');
+                            songs = importedData;
+                            render();
+                        } else {
+                            showDialog('データの形式が正しくありません。', 'alert');
+                        }
+                    } catch (error) {
+                        showDialog('ファイルの読み込みに失敗しました。', 'alert');
+                    }
+                };
+                reader.readAsText(file);
+                // Reset input
+                input.value = '';
+            }
+
+            // --- GAS Communication ---
+
+            async function saveToGAS() {
+                if (!GAS_API_URL) {
+                    showDialog('GASのURLが設定されていません。', 'alert');
+                    return;
+                }
+
+                updateStatus('サーバーと同期中...', true);
+
+                try {
+                    // 1. Get Latest from Server (Check for new items from others)
+                    let serverSongs = [];
+                    try {
+                        const res = await fetch(GAS_API_URL);
+                        const data = await res.json();
+                        // Check if response is valid array
+                        if (Array.isArray(data)) {
+                            serverSongs = data;
+                        }
+                    } catch(e) { console.log('First save or fetch error', e); }
+
+                    // 2. Merge Logic
+                    // Base is LOCAL songs (to keep local edits/order).
+                    // Add items from SERVER that are not in local AND not in deletedIds.
+                    const localIds = new Set(songs.map(s => s.id));
+                    const newServerSongs = serverSongs.filter(s => 
+                        !localIds.has(s.id) && !deletedIds.includes(s.id)
+                    );
+                    const mergedSongs = [...songs, ...newServerSongs];
+                    songs = mergedSongs;
+                    render(); 
+
+                    // 3. Post to GAS (Overwrite A1)
+                    await fetch(GAS_API_URL, {
+                        method: 'POST',
+                        body: JSON.stringify(mergedSongs),
+                        headers: { "Content-Type": "text/plain;charset=utf-8" }
+                    });
+
+                    // Success
+                    deletedIds = [];
+                    localStorage.setItem('deletedIds', JSON.stringify(deletedIds));
+
+                    updateStatus('同期・保存完了！');
+                    setTimeout(() => updateStatus(``), 3000);
+
+                } catch (error) {
+                    showDialog(`保存エラー: ${error.message}`, 'alert');
+                    updateStatus('保存失敗');
+                }
+            }
+
+            async function loadFromGAS(silent = false) {
+                if (!GAS_API_URL) {
+                    if(!silent) showDialog('GASのURLが設定されていません。', 'alert');
+                    return;
+                }
+
+                const runLoad = async () => {
+                    updateStatus('読み込み中...', true);
+                    try {
+                        const res = await fetch(GAS_API_URL);
+                        const data = await res.json();
+                        
+                        if (Array.isArray(data)) {
+                            songs = data;
+                            activeTab = 'ALL';
+                            currentPage = 1;
+                            deletedIds = [];
+                            localStorage.setItem('deletedIds', JSON.stringify(deletedIds));
+                            render();
+                            updateStatus('読み込み完了');
+                            setTimeout(() => updateStatus(``), 3000);
+                        } else {
+                            throw new Error('Invalid data format');
+                        }
+                    } catch (error) {
+                        if(!silent) showDialog(`読み込みエラー: ${error.message}`, 'alert');
+                        updateStatus('エラー');
+                    }
+                };
+
+                if (silent) {
+                    await runLoad();
+                } else {
+                    showDialog('サーバーからデータを読み込みますか？\nローカルの変更は上書きされます。', 'confirm', runLoad);
+                }
+            }
+
+            // --- UI Helper Functions ---
+
+            function updateStatus(msg, animate = false) {
+                els.status.innerText = msg;
+                if(animate) {
+                    els.status.classList.add('animate-pulse');
+                    if(els.refreshIcon) els.refreshIcon.classList.add('animate-spin-slow');
+                } else {
+                    els.status.classList.remove('animate-pulse');
+                    if(els.refreshIcon) els.refreshIcon.classList.remove('animate-spin-slow');
+                }
+            }
+
+            function showDialog(message, type = 'alert', onConfirm = null) {
+                const dialog = els.modals.dialog;
+                document.getElementById('dialog-message').innerText = message;
+                const actions = document.getElementById('dialog-actions');
+                actions.innerHTML = '';
+                
+                if (type === 'confirm') {
+                    actions.innerHTML = `
+                        <button onclick="document.getElementById('custom-dialog').classList.add('hidden')" class="px-4 py-2 bg-gray-200 rounded-lg text-sm font-bold">キャンセル</button>
+                        <button id="confirm-ok-btn" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold">OK</button>
+                    `;
+                    document.getElementById('confirm-ok-btn').onclick = () => { dialog.classList.add('hidden'); if(onConfirm) onConfirm(); };
+                } else {
+                    actions.innerHTML = `<button onclick="document.getElementById('custom-dialog').classList.add('hidden')" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold w-full">OK</button>`;
+                }
+                
+                lucide.createIcons();
+                dialog.classList.remove('hidden');
+            }
+
+            // Init Logic for Auto-load
+            // If LocalStorage is empty OR matches the Initial Placeholder data exactly, we auto-load from GAS.
+            // This fixes the "New Device" issue.
+            const currentDataStr = JSON.stringify(songs);
+            const initialDataStr = JSON.stringify(initialData);
+            
+            // Only auto-load if we have a URL
+            if (GAS_API_URL) {
+                if (!localStorage.getItem('myMusicList') || currentDataStr === initialDataStr) {
+                    loadFromGAS(true);
+                }
+            }
+            
+            render();
+
+            return {
+                addSong, deleteSong, moveSong, setActiveTab, setPage,
+                saveToGAS, loadFromGAS, importFile
+            };
+        })();
+    </script>
+</body>
+</html>
