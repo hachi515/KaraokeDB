@@ -28,7 +28,6 @@
         .modal-animate {
             animation: fadeIn 0.2s ease-out;
         }
-        /* Spin animation definition kept for reference but unused for refresh icon */
         @keyframes spin {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
@@ -103,6 +102,12 @@
                             <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Song</label>
                             <input type="text" id="input-song" placeholder="曲名 (必須)"
                                 class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
+                        </div>
+
+                        <!-- Checkbox for Part Division -->
+                        <div class="flex items-center gap-2 pt-1">
+                            <input type="checkbox" id="input-part-division" class="w-4 h-4 text-blue-600 bg-gray-50 border-gray-300 rounded focus:ring-blue-500 cursor-pointer">
+                            <label for="input-part-division" class="text-xs text-gray-600 cursor-pointer select-none font-medium">パート分け</label>
                         </div>
 
                         <button onclick="app.addSong()" class="w-full py-2.5 mt-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg shadow-md hover:shadow-lg transition-all active:scale-[0.98]">
@@ -233,7 +238,8 @@
                     singer: document.getElementById('input-singer'),
                     work: document.getElementById('input-work'),
                     artist: document.getElementById('input-artist'),
-                    song: document.getElementById('input-song')
+                    song: document.getElementById('input-song'),
+                    partDivision: document.getElementById('input-part-division')
                 },
                 modals: { dialog: document.getElementById('custom-dialog') },
                 status: document.getElementById('status-message'),
@@ -287,6 +293,9 @@
                     els.songList.innerHTML = displaySongs.map((song, i) => {
                         const globalIndex = startIdx + i + 1;
                         const searchUrl = `http://ykr.moe:11059/search_listerdb_filelist.php?anyword=${encodeURIComponent((song.song + ' ' + (song.work||'') + ' ' + (song.artist||'')).trim())}`;
+                        
+                        // パート分けの表示ロジック
+                        const partDivisionLabel = song.isPartDivision ? '<span class="text-red-400 opacity-80 text-xs ml-1 font-normal">(パート分け)</span>' : '';
 
                         return `
                         <div class="group grid grid-cols-12 gap-2 md:gap-4 px-2 md:px-4 py-3 mb-1 items-center bg-white border border-gray-100 rounded-lg hover:shadow-md hover:border-blue-200 transition-all duration-200">
@@ -294,7 +303,9 @@
                                 ${globalIndex}
                             </div>
                             <div class="col-span-4 md:col-span-5 min-w-0">
-                                <div class="font-bold text-gray-800 text-xs md:text-sm break-words whitespace-normal leading-tight">${song.song}</div>
+                                <div class="font-bold text-gray-800 text-xs md:text-sm break-words whitespace-normal leading-tight">
+                                    ${song.song}${partDivisionLabel}
+                                </div>
                             </div>
                             <div class="col-span-4 md:col-span-4 min-w-0 flex flex-col justify-center">
                                 <div class="text-[10px] md:text-xs text-gray-600 flex items-center gap-1 flex-wrap">
@@ -362,6 +373,8 @@
             function addSong() {
                 const singer = els.inputs.singer.value.trim();
                 const songName = els.inputs.song.value.trim();
+                const isPartDivision = els.inputs.partDivision.checked;
+
                 if (!songName) {
                     showDialog('曲名は必須です', 'alert');
                     return;
@@ -372,13 +385,15 @@
                     singer: singer,
                     work: els.inputs.work.value.trim(),
                     artist: els.inputs.artist.value.trim(),
-                    song: songName
+                    song: songName,
+                    isPartDivision: isPartDivision
                 });
                 
                 if (singer) activeTab = singer;
                 els.inputs.song.value = '';
                 els.inputs.work.value = '';
                 els.inputs.artist.value = '';
+                els.inputs.partDivision.checked = false;
                 render();
             }
 
