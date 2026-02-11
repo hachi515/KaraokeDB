@@ -297,14 +297,19 @@
 
                 // Filter & Pagination
                 const filteredSongs = activeTab === 'ALL' ? songs : songs.filter(s => s.singer === activeTab);
-                const totalPages = Math.ceil(filteredSongs.length / ITEMS_PER_PAGE) || 1;
+                
+                // Reverse for display: Show newest first
+                const reversedSongs = [...filteredSongs].reverse();
+
+                const totalPages = Math.ceil(reversedSongs.length / ITEMS_PER_PAGE) || 1;
                 
                 if (currentPage > totalPages) currentPage = totalPages;
                 if (currentPage < 1) currentPage = 1;
 
                 const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
                 const endIdx = startIdx + ITEMS_PER_PAGE;
-                const displaySongs = filteredSongs.slice(startIdx, endIdx);
+                // Slice from reversed array
+                const displaySongs = reversedSongs.slice(startIdx, endIdx);
 
                 els.songCount.innerText = `${filteredSongs.length} tracks`;
                 els.listTitle.innerHTML = activeTab === 'ALL' 
@@ -320,7 +325,10 @@
                     `;
                 } else {
                     els.songList.innerHTML = displaySongs.map((song, i) => {
-                        const globalIndex = startIdx + i + 1;
+                        // Calculate global index relative to original list (Oldest = 1, Newest = N)
+                        // But displayed from top: Newest is displayed first with highest number.
+                        // Formula: Total - (offset + current_index)
+                        const globalIndex = filteredSongs.length - (startIdx + i);
                         const searchUrl = `http://ykr.moe:11059/search_listerdb_filelist.php?anyword=${encodeURIComponent((song.song + ' ' + (song.work||'') + ' ' + (song.artist||'')).trim())}`;
                         
                         // ラベル表示ロジック
@@ -445,7 +453,7 @@
                         showDialog('曲情報を更新しました。', 'alert');
                     }
                 } else {
-                    // Add new
+                    // Add new (append to end of array -> shown at top of reversed list)
                     songs.push({
                         id: Date.now() + Math.random(),
                         ...songData
@@ -536,8 +544,12 @@
                 if (visualIndex === -1) return;
                 
                 let targetVisualIndex = -1;
-                if (direction === 'up' && visualIndex > 0) targetVisualIndex = visualIndex - 1;
-                if (direction === 'down' && visualIndex < filtered.length - 1) targetVisualIndex = visualIndex + 1;
+                
+                // Reverse logic for visual consistency:
+                // 'up' arrow means visually moving up (to newer/higher index)
+                // 'down' arrow means visually moving down (to older/lower index)
+                if (direction === 'up' && visualIndex < filtered.length - 1) targetVisualIndex = visualIndex + 1;
+                if (direction === 'down' && visualIndex > 0) targetVisualIndex = visualIndex - 1;
 
                 if (targetVisualIndex !== -1) {
                     const swapSong = filtered[targetVisualIndex];
