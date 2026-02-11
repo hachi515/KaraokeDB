@@ -112,17 +112,14 @@
 
                         <!-- Checkboxes: Tags -->
                         <div class="flex flex-wrap items-center gap-4 pt-1">
-                            <!-- Part Division -->
                             <div class="flex items-center gap-1.5">
                                 <input type="checkbox" id="input-part-division" class="w-4 h-4 text-red-500 bg-gray-50 border-gray-300 rounded focus:ring-red-400 cursor-pointer">
                                 <label for="input-part-division" class="text-xs text-gray-600 cursor-pointer select-none font-medium">パート分け</label>
                             </div>
-                            <!-- Practicing -->
                             <div class="flex items-center gap-1.5">
                                 <input type="checkbox" id="input-practicing" class="w-4 h-4 text-blue-500 bg-gray-50 border-gray-300 rounded focus:ring-blue-400 cursor-pointer">
                                 <label for="input-practicing" class="text-xs text-gray-600 cursor-pointer select-none font-medium">練習中</label>
                             </div>
-                            <!-- Review Needed -->
                             <div class="flex items-center gap-1.5">
                                 <input type="checkbox" id="input-review-needed" class="w-4 h-4 text-yellow-500 bg-gray-50 border-gray-300 rounded focus:ring-yellow-400 cursor-pointer">
                                 <label for="input-review-needed" class="text-xs text-gray-600 cursor-pointer select-none font-medium">要復習</label>
@@ -142,7 +139,7 @@
                         
                         <!-- Singer Select -->
                         <div>
-                            <label class="block text-xs font-bold text-gray-500 mb-2">歌唱者を選択</label>
+                            <label class="block text-xs font-bold text-gray-500 mb-2">歌唱者</label>
                             <div class="relative">
                                 <select id="singer-filter-select" onchange="app.setActiveTab(this.value)" 
                                     class="w-full pl-3 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer">
@@ -163,8 +160,12 @@
                             <label class="block text-xs font-bold text-gray-500 mb-2">リスト内検索</label>
                             <div class="flex gap-2">
                                 <div class="relative flex-1">
-                                    <input type="text" id="list-search-input" placeholder="スペースでAND検索" onkeydown="if(event.key==='Enter') app.triggerSearch()"
-                                        class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
+                                    <input type="text" id="list-search-input" placeholder="スペースでAND検索" onkeydown="if(event.key==='Enter') app.triggerSearch()" oninput="app.toggleClearButton(this.value)"
+                                        class="w-full pl-3 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
+                                    <!-- Clear Button -->
+                                    <button onclick="app.clearSearch()" id="search-clear-btn" class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                        <i data-lucide="x-circle" class="w-4 h-4"></i>
+                                    </button>
                                 </div>
                                 <button onclick="app.triggerSearch()" class="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-600 rounded-lg transition-colors flex items-center gap-1 text-sm font-bold active:scale-95">
                                     <i data-lucide="search" class="w-4 h-4"></i>
@@ -173,8 +174,27 @@
                             </div>
                         </div>
 
-                        <!-- Target Port Selection -->
+                        <!-- Tag Filter (New) -->
                         <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-2">絞り込み</label>
+                            <div class="flex flex-wrap gap-3">
+                                <div class="flex items-center gap-1">
+                                    <input type="checkbox" id="filter-part-division" onchange="app.toggleFilterTag('isPartDivision')" class="w-3.5 h-3.5 text-red-500 bg-gray-50 border-gray-300 rounded focus:ring-red-400 cursor-pointer">
+                                    <label for="filter-part-division" class="text-xs text-gray-600 cursor-pointer select-none">パート分け</label>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <input type="checkbox" id="filter-practicing" onchange="app.toggleFilterTag('isPracticing')" class="w-3.5 h-3.5 text-blue-500 bg-gray-50 border-gray-300 rounded focus:ring-blue-400 cursor-pointer">
+                                    <label for="filter-practicing" class="text-xs text-gray-600 cursor-pointer select-none">練習中</label>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <input type="checkbox" id="filter-review-needed" onchange="app.toggleFilterTag('isReviewNeeded')" class="w-3.5 h-3.5 text-yellow-500 bg-gray-50 border-gray-300 rounded focus:ring-yellow-400 cursor-pointer">
+                                    <label for="filter-review-needed" class="text-xs text-gray-600 cursor-pointer select-none">要復習</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Target Port Selection -->
+                        <div class="pt-2 border-t border-gray-100">
                             <label class="block text-xs font-bold text-gray-500 mb-2">検索先の機材係 (部屋)</label>
                             <button onclick="app.openRoomModal()" id="current-room-btn"
                                 class="w-full text-left px-3 py-2 bg-green-50 border border-green-200 hover:bg-green-100 text-green-700 rounded-lg text-xs font-bold flex items-center justify-between transition-colors">
@@ -223,13 +243,15 @@
                 <!-- Status text -->
              </div>
              
-             <!-- Migration Import Button -->
-             <input type="file" id="file-import" class="hidden" accept=".json" onchange="app.importFile(this)">
-             <button onclick="document.getElementById('file-import').click()" 
-                class="flex items-center gap-2 px-4 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-600 rounded-full font-bold transition-colors active:scale-95" title="JSONファイルを読み込む">
-                <i data-lucide="folder-open" class="w-4 h-4"></i>
-                <span class="hidden sm:inline">取込</span>
+             <!-- CSV Menu Button -->
+             <button onclick="app.openCSVModal()" 
+                class="flex items-center gap-2 px-4 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-600 rounded-full font-bold transition-colors active:scale-95" title="CSVエクスポート/インポート">
+                <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                <span class="hidden sm:inline">CSV</span>
              </button>
+
+             <!-- Migration Import Button (Hidden, kept for compatibility if needed or removed) -->
+             <input type="file" id="file-import" class="hidden" accept=".json,.csv" onchange="app.handleFileSelect(this)">
 
              <button onclick="app.saveToGAS()"
                 class="flex items-center gap-2 px-6 py-2.5 bg-gray-800 hover:bg-gray-900 text-white rounded-full font-bold shadow-lg shadow-gray-400/20 transition-all transform hover:-translate-y-0.5 active:scale-95">
@@ -241,16 +263,14 @@
 
     <!-- Modals -->
     
-    <!-- Custom Dialog (Alert/Confirm replacement) -->
+    <!-- Custom Dialog -->
     <div id="custom-dialog" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 relative modal-animate text-center">
             <div id="dialog-icon" class="mx-auto w-12 h-12 flex items-center justify-center rounded-full bg-blue-100 text-blue-500 mb-4">
                 <i data-lucide="info"></i>
             </div>
             <p id="dialog-message" class="text-sm text-gray-700 font-medium mb-6 whitespace-pre-wrap"></p>
-            <div id="dialog-actions" class="flex gap-2 justify-center">
-                <!-- Buttons injected via JS -->
-            </div>
+            <div id="dialog-actions" class="flex gap-2 justify-center"></div>
         </div>
     </div>
 
@@ -263,7 +283,6 @@
                 </h3>
                 <button onclick="app.closeRoomModal()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x"></i></button>
             </div>
-            
             <div class="mb-4">
                 <label class="block text-xs font-bold text-gray-500 mb-1">ポート番号を直接入力 (任意)</label>
                 <div class="flex gap-2">
@@ -271,10 +290,37 @@
                     <button onclick="app.setCustomPort()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-lg whitespace-nowrap">設定</button>
                 </div>
             </div>
-
             <div class="flex-1 overflow-y-auto custom-scrollbar border-t border-gray-100 pt-4">
-                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" id="room-buttons-container">
-                    <!-- Buttons injected via JS -->
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" id="room-buttons-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CSV Modal -->
+    <div id="csv-dialog" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 relative modal-animate text-center">
+            <button onclick="app.closeCSVModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><i data-lucide="x"></i></button>
+            <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center justify-center gap-2">
+                <i data-lucide="file-spreadsheet" class="text-green-600"></i> CSV操作
+            </h3>
+            <div class="space-y-3">
+                <p class="text-xs text-gray-500 text-left mb-2">リストのバックアップや、Excel等での一括編集に利用できます。</p>
+                
+                <button onclick="app.exportCSV()" class="w-full py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors border border-blue-200">
+                    <i data-lucide="download"></i> CSVエクスポート (様式出力)
+                </button>
+                
+                <div class="border-t border-gray-100 my-2"></div>
+                
+                <p class="text-xs text-gray-500 text-left mb-1">CSVファイルを読み込んでリストを更新・追加します。<br>※歌唱者と曲名が一致するデータは上書き更新されます。</p>
+                <button onclick="document.getElementById('file-import').click()" class="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold flex items-center justify-center gap-2 transition-colors shadow-md active:scale-[0.98]">
+                    <i data-lucide="upload"></i> CSVインポート (更新/追加)
+                </button>
+                
+                <div class="text-[10px] text-gray-400 mt-2 text-left bg-gray-50 p-2 rounded">
+                    <strong>CSV形式:</strong><br>
+                    歌唱者, 作品名, 歌手, 曲名, パート分け(0/1), 練習中(0/1), 要復習(0/1)<br>
+                    ※文字コード: UTF-8推奨
                 </div>
             </div>
         </div>
@@ -314,6 +360,11 @@
             let targetPort = parseInt(localStorage.getItem('targetPort')) || 11059;
             let currentPage = 1;
             let editingId = null; 
+            let filterTags = {
+                isPartDivision: false,
+                isPracticing: false,
+                isReviewNeeded: false
+            };
 
             const els = {
                 singerFilterSelect: document.getElementById('singer-filter-select'),
@@ -335,7 +386,8 @@
                     practicing: document.getElementById('input-practicing'),
                     reviewNeeded: document.getElementById('input-review-needed')
                 },
-                searchInput: document.getElementById('list-search-input'), // New
+                searchInput: document.getElementById('list-search-input'),
+                searchClearBtn: document.getElementById('search-clear-btn'),
                 form: {
                     container: document.getElementById('input-form-container'),
                     titleText: document.getElementById('form-title-text'),
@@ -345,7 +397,8 @@
                 },
                 modals: { 
                     dialog: document.getElementById('custom-dialog'),
-                    room: document.getElementById('room-dialog')
+                    room: document.getElementById('room-dialog'),
+                    csv: document.getElementById('csv-dialog')
                 },
                 status: document.getElementById('status-message'),
                 refreshIcon: document.getElementById('refresh-icon')
@@ -377,9 +430,13 @@
 
                 // Filter Logic
                 let filteredSongs = songs;
+                
+                // 1. Singer Filter
                 if (activeTab !== 'ALL') {
                     filteredSongs = filteredSongs.filter(s => s.singer === activeTab);
                 }
+                
+                // 2. Search Query Filter (AND search)
                 if (searchQuery) {
                     const queries = searchQuery.toLowerCase().replace(/　/g, ' ').split(' ').filter(q => q);
                     filteredSongs = filteredSongs.filter(s => {
@@ -388,11 +445,15 @@
                     });
                 }
 
+                // 3. Tag Filter (AND search logic for tags: show if ANY selected tag matches? No, usually AND or OR.
+                // Requirement: "filter by Part, Practice, Review".
+                // If multiple checked, usually narrow down (AND) or show any (OR).
+                // Let's implement AND logic (must match all checked tags).
+                if (filterTags.isPartDivision) filteredSongs = filteredSongs.filter(s => s.isPartDivision);
+                if (filterTags.isPracticing) filteredSongs = filteredSongs.filter(s => s.isPracticing);
+                if (filterTags.isReviewNeeded) filteredSongs = filteredSongs.filter(s => s.isReviewNeeded);
+
                 // Display Order: Reverse (Newest First)
-                // Note: filteredSongs currently in [Old ... New] order (Registration order)
-                // We reverse it to display Newest at top.
-                // However, we want "No." to reflect original registration sequence.
-                // So "No.1" is the oldest item.
                 const displayList = [...filteredSongs].reverse();
 
                 // Pagination
@@ -419,11 +480,6 @@
                     `;
                 } else {
                     els.songList.innerHTML = displaySongs.map((song, i) => {
-                        // Calculate No. based on original filtered list length
-                        // Display List is Reversed.
-                        // Top item on Page 1 (Newest) should be No. MAX
-                        // Formula: Total Filtered Count - (Index in Display List)
-                        // Index in Display List = startIdx + i
                         const displayIndex = filteredSongs.length - (startIdx + i);
                         
                         const searchParam = encodeURIComponent((song.song + ' ' + (song.work||'') + ' ' + (song.artist||'')).trim());
@@ -509,14 +565,26 @@
                 render();
             }
 
-            // Updated Search Logic
-            function triggerSearch() {
-                const query = els.searchInput.value;
-                setSearchQuery(query);
+            function toggleClearButton(val) {
+                if (val.length > 0) els.searchClearBtn.classList.remove('hidden');
+                else els.searchClearBtn.classList.add('hidden');
             }
 
-            function setSearchQuery(query) {
+            function triggerSearch() {
+                const query = els.searchInput.value;
                 searchQuery = query;
+                currentPage = 1;
+                render();
+            }
+
+            function clearSearch() {
+                els.searchInput.value = '';
+                toggleClearButton('');
+                triggerSearch();
+            }
+
+            function toggleFilterTag(key) {
+                filterTags[key] = !filterTags[key];
                 currentPage = 1;
                 render();
             }
@@ -667,15 +735,10 @@
                 });
             }
 
-            // Updated Move Logic for Reverse Display
-            // "Up" in UI (visual up) = Newer = Index+1 in underlying 'songs' array
-            // "Down" in UI (visual down) = Older = Index-1 in underlying 'songs' array
-            // Note: Filtered list is also bottom-up (Old->New). 
             function moveSong(id, direction) {
                 const globalIndex = songs.findIndex(s => s.id === id);
                 if (globalIndex === -1) return;
 
-                // Create a filtered list to find the adjacent item in the *filtered* view
                 let currentList = songs;
                 if (activeTab !== 'ALL') currentList = currentList.filter(s => s.singer === activeTab);
                 if (searchQuery) {
@@ -685,56 +748,196 @@
                         return queries.every(q => targetText.includes(q));
                     });
                 }
+                // Filter Tags
+                if (filterTags.isPartDivision) currentList = currentList.filter(s => s.isPartDivision);
+                if (filterTags.isPracticing) currentList = currentList.filter(s => s.isPracticing);
+                if (filterTags.isReviewNeeded) currentList = currentList.filter(s => s.isReviewNeeded);
 
-                // Find index in the filtered list (Old -> New)
                 const visualIndex = currentList.findIndex(s => s.id === id);
                 if (visualIndex === -1) return;
 
                 let targetVisualIndex = -1;
-                // UI "Up" means visually higher (newer). In Old->New list, this is index + 1.
+                // Old-New list, visual Up is index+1
                 if (direction === 'up' && visualIndex < currentList.length - 1) {
                     targetVisualIndex = visualIndex + 1;
                 }
-                // UI "Down" means visually lower (older). In Old->New list, this is index - 1.
                 if (direction === 'down' && visualIndex > 0) {
                     targetVisualIndex = visualIndex - 1;
                 }
 
                 if (targetVisualIndex !== -1) {
                     const swapSong = currentList[targetVisualIndex];
-                    // Find swap song in global list
                     const swapGlobalIndex = songs.findIndex(s => s.id === swapSong.id);
-                    
-                    // Swap
                     [songs[globalIndex], songs[swapGlobalIndex]] = [songs[swapGlobalIndex], songs[globalIndex]];
                     render();
                 }
             }
 
-            // --- Migration Feature (File Import) ---
-            
-            function importFile(input) {
+            // --- CSV Actions ---
+
+            function openCSVModal() {
+                els.modals.csv.classList.remove('hidden');
+            }
+
+            function closeCSVModal() {
+                els.modals.csv.classList.add('hidden');
+            }
+
+            function exportCSV() {
+                // BOM for Excel compatibility
+                const BOM = '\uFEFF';
+                const header = ['歌唱者', '作品名', '歌手', '曲名', 'パート分け', '練習中', '要復習'];
+                
+                // Use current display list? Or all songs? 
+                // Requirement: "csvで様式を出力できるようにして" -> All songs or Template (Headers only).
+                // Exporting ALL songs is better for backup.
+                
+                const csvRows = [header.join(',')];
+                
+                songs.forEach(s => {
+                    const row = [
+                        s.singer || '',
+                        s.work || '',
+                        s.artist || '',
+                        s.song || '',
+                        s.isPartDivision ? '1' : '',
+                        s.isPracticing ? '1' : '',
+                        s.isReviewNeeded ? '1' : ''
+                    ].map(field => {
+                        // Escape quotes and wrap in quotes if necessary
+                        const stringField = String(field);
+                        if (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n')) {
+                            return `"${stringField.replace(/"/g, '""')}"`;
+                        }
+                        return stringField;
+                    });
+                    csvRows.push(row.join(','));
+                });
+
+                const csvString = BOM + csvRows.join('\r\n');
+                const blob = new Blob([csvString], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `karaoke_list_${new Date().toISOString().slice(0,10)}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+                closeCSVModal();
+            }
+
+            function handleFileSelect(input) {
                 const file = input.files[0];
                 if (!file) return;
 
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     try {
-                        const importedData = JSON.parse(e.target.result);
-                        if (Array.isArray(importedData)) {
-                            showDialog(`ファイルから ${importedData.length} 件のデータを読み込みました。\n反映するには「同期して保存」を押してください。`, 'alert');
-                            songs = importedData;
-                            render();
+                        const text = e.target.result;
+                        // Determine if it's JSON or CSV
+                        if (text.trim().startsWith('[') || text.trim().startsWith('{')) {
+                            // JSON import logic (existing)
+                            const importedData = JSON.parse(text);
+                            if (Array.isArray(importedData)) {
+                                showDialog(`ファイルから ${importedData.length} 件のデータを読み込みました (JSON)。\n反映するには「同期して保存」を押してください。`, 'alert');
+                                songs = importedData;
+                                render();
+                            } else {
+                                showDialog('JSONデータの形式が正しくありません。', 'alert');
+                            }
                         } else {
-                            showDialog('データの形式が正しくありません。', 'alert');
+                            // CSV import logic
+                            importCSV(text);
                         }
                     } catch (error) {
                         showDialog('ファイルの読み込みに失敗しました。', 'alert');
                     }
                 };
                 reader.readAsText(file);
+                // Reset input
                 input.value = '';
+                closeCSVModal();
             }
+
+            function importCSV(csvText) {
+                const rows = csvText.split(/\r\n|\n/);
+                // Header check is loose; assume standard format or skip 1st row if it looks like header
+                // Let's assume header exists.
+                const dataRows = rows.slice(1).filter(r => r.trim() !== '');
+                
+                let addedCount = 0;
+                let updatedCount = 0;
+
+                dataRows.forEach(rowStr => {
+                    // Simple CSV parser (doesn't handle embedded commas/quotes perfectly without regex, but sufficient for simple data)
+                    // Better approach for quoted CSV:
+                    const matches = rowStr.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g); 
+                    // Actually, a simple split is risky. Let's use a regex that handles quotes.
+                    // Or simple split if users are careful. Let's try robust split.
+                    
+                    let row = [];
+                    let inQuote = false;
+                    let currentField = '';
+                    for (let i = 0; i < rowStr.length; i++) {
+                        const char = rowStr[i];
+                        if (char === '"') { inQuote = !inQuote; continue; }
+                        if (char === ',' && !inQuote) {
+                            row.push(currentField);
+                            currentField = '';
+                        } else {
+                            currentField += char;
+                        }
+                    }
+                    row.push(currentField);
+
+                    // Mapping: 0:Singer, 1:Work, 2:Artist, 3:Song, 4:Part, 5:Practice, 6:Review
+                    if (row.length < 4) return; // Skip invalid
+
+                    const newSinger = row[0].trim();
+                    const newWork = row[1].trim();
+                    const newArtist = row[2].trim();
+                    const newSong = row[3].trim();
+                    if (!newSong) return;
+
+                    const isPart = (row[4] && (row[4].trim() === '1' || row[4].trim().toLowerCase() === 'true'));
+                    const isPrac = (row[5] && (row[5].trim() === '1' || row[5].trim().toLowerCase() === 'true'));
+                    const isRev = (row[6] && (row[6].trim() === '1' || row[6].trim().toLowerCase() === 'true'));
+
+                    // Check existing
+                    const existingIndex = songs.findIndex(s => s.singer === newSinger && s.song === newSong);
+                    
+                    if (existingIndex !== -1) {
+                        // Update
+                        songs[existingIndex] = {
+                            ...songs[existingIndex],
+                            work: newWork,
+                            artist: newArtist,
+                            isPartDivision: isPart,
+                            isPracticing: isPrac,
+                            isReviewNeeded: isRev
+                        };
+                        updatedCount++;
+                    } else {
+                        // Add
+                        songs.push({
+                            id: Date.now() + Math.random(),
+                            singer: newSinger,
+                            work: newWork,
+                            artist: newArtist,
+                            song: newSong,
+                            isPartDivision: isPart,
+                            isPracticing: isPrac,
+                            isReviewNeeded: isRev
+                        });
+                        addedCount++;
+                    }
+                });
+
+                showDialog(`CSVインポート完了:\n追加: ${addedCount}件\n更新: ${updatedCount}件\n反映するには「同期して保存」を押してください。`, 'alert');
+                render();
+            }
+
+            // Compatibility for old "importFile" reference if needed, now integrated into handleFileSelect
+            function importFile(input) { handleFileSelect(input); }
 
             // --- GAS Communication ---
 
@@ -878,8 +1081,9 @@
 
             return {
                 addSong, deleteSong, moveSong, setActiveTab, setPage,
-                saveToGAS, loadFromGAS, importFile, triggerSearch, setSearchQuery,
-                openRoomModal, closeRoomModal, selectPort, setCustomPort, saveSong, editSong, cancelEdit
+                saveToGAS, loadFromGAS, handleFileSelect, triggerSearch, setSearchQuery, toggleClearButton, clearSearch,
+                openRoomModal, closeRoomModal, selectPort, setCustomPort, saveSong, editSong, cancelEdit, toggleFilterTag,
+                openCSVModal, closeCSVModal, exportCSV
             };
         })();
     </script>
