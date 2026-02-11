@@ -158,13 +158,18 @@
                             </div>
                         </div>
 
-                        <!-- Search Box -->
+                        <!-- Search Box (Modified) -->
                         <div>
                             <label class="block text-xs font-bold text-gray-500 mb-2">リスト内検索</label>
-                            <div class="relative">
-                                <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-gray-400"></i>
-                                <input type="text" id="list-search-input" oninput="app.setSearchQuery(this.value)" placeholder="曲名・作品名など (スペースでAND検索)"
-                                    class="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
+                            <div class="flex gap-2">
+                                <div class="relative flex-1">
+                                    <input type="text" id="list-search-input" placeholder="スペースでAND検索" onkeydown="if(event.key==='Enter') app.triggerSearch()"
+                                        class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
+                                </div>
+                                <button onclick="app.triggerSearch()" class="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-600 rounded-lg transition-colors flex items-center gap-1 text-sm font-bold active:scale-95">
+                                    <i data-lucide="search" class="w-4 h-4"></i>
+                                    検索
+                                </button>
                             </div>
                         </div>
 
@@ -330,6 +335,7 @@
                     practicing: document.getElementById('input-practicing'),
                     reviewNeeded: document.getElementById('input-review-needed')
                 },
+                searchInput: document.getElementById('list-search-input'), // New
                 form: {
                     container: document.getElementById('input-form-container'),
                     titleText: document.getElementById('form-title-text'),
@@ -369,37 +375,37 @@
                 const roomName = ROOMS[targetPort] ? ROOMS[targetPort] : 'カスタム部屋';
                 els.roomNameDisplay.innerText = `${roomName} (${targetPort})`;
 
-                // Filter Logic (Singer + Search Query)
+                // Filter Logic
                 let filteredSongs = songs;
-                
-                // 1. Singer Filter
                 if (activeTab !== 'ALL') {
                     filteredSongs = filteredSongs.filter(s => s.singer === activeTab);
                 }
-
-                // 2. Search Query Filter (AND search)
                 if (searchQuery) {
-                    // Split query by space (full-width or half-width)
                     const queries = searchQuery.toLowerCase().replace(/　/g, ' ').split(' ').filter(q => q);
-                    
                     filteredSongs = filteredSongs.filter(s => {
                         const targetText = `${s.song} ${s.work} ${s.artist}`.toLowerCase();
-                        // Check if all query words exist in target text
                         return queries.every(q => targetText.includes(q));
                     });
                 }
 
+                // Display Order: Reverse (Newest First)
+                // Note: filteredSongs currently in [Old ... New] order (Registration order)
+                // We reverse it to display Newest at top.
+                // However, we want "No." to reflect original registration sequence.
+                // So "No.1" is the oldest item.
+                const displayList = [...filteredSongs].reverse();
+
                 // Pagination
-                const totalPages = Math.ceil(filteredSongs.length / ITEMS_PER_PAGE) || 1;
+                const totalPages = Math.ceil(displayList.length / ITEMS_PER_PAGE) || 1;
                 
                 if (currentPage > totalPages) currentPage = totalPages;
                 if (currentPage < 1) currentPage = 1;
 
                 const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
                 const endIdx = startIdx + ITEMS_PER_PAGE;
-                const displaySongs = filteredSongs.slice(startIdx, endIdx);
+                const displaySongs = displayList.slice(startIdx, endIdx);
 
-                els.songCount.innerText = `${filteredSongs.length} tracks`;
+                els.songCount.innerText = `${displayList.length} tracks`;
                 els.listTitle.innerHTML = activeTab === 'ALL' 
                     ? '<i data-lucide="list-plus" class="w-5 h-5"></i> All Songs' 
                     : `<i data-lucide="user" class="w-5 h-5"></i> ${activeTab}`;
@@ -413,10 +419,13 @@
                     `;
                 } else {
                     els.songList.innerHTML = displaySongs.map((song, i) => {
-                        // Global index approximation for display (within filtered set)
-                        const displayIndex = startIdx + i + 1; 
+                        // Calculate No. based on original filtered list length
+                        // Display List is Reversed.
+                        // Top item on Page 1 (Newest) should be No. MAX
+                        // Formula: Total Filtered Count - (Index in Display List)
+                        // Index in Display List = startIdx + i
+                        const displayIndex = filteredSongs.length - (startIdx + i);
                         
-                        // Search URL using Target Port
                         const searchParam = encodeURIComponent((song.song + ' ' + (song.work||'') + ' ' + (song.artist||'')).trim());
                         const searchUrl = `http://ykr.moe:${targetPort}/search_listerdb_filelist.php?anyword=${searchParam}`;
                         
@@ -500,6 +509,12 @@
                 render();
             }
 
+            // Updated Search Logic
+            function triggerSearch() {
+                const query = els.searchInput.value;
+                setSearchQuery(query);
+            }
+
             function setSearchQuery(query) {
                 searchQuery = query;
                 currentPage = 1;
@@ -514,7 +529,6 @@
             // --- Room Setting Actions ---
 
             function openRoomModal() {
-                // Generate Buttons
                 let html = '';
                 for (const [port, name] of Object.entries(ROOMS)) {
                     const isSelected = parseInt(port) === targetPort;
@@ -527,7 +541,6 @@
                 }
                 els.roomButtonsContainer.innerHTML = html;
                 els.roomInputPort.value = targetPort;
-                
                 els.modals.room.classList.remove('hidden');
             }
 
@@ -553,7 +566,7 @@
 
             // --- Song Edit Actions ---
 
-            function saveSong() { // Combined Add/Update function
+            function saveSong() { 
                 const singer = els.inputs.singer.value.trim();
                 const songName = els.inputs.song.value.trim();
                 const isPartDivision = els.inputs.partDivision.checked;
@@ -576,14 +589,12 @@
                 };
 
                 if (editingId) {
-                    // Update existing
                     const index = songs.findIndex(s => s.id === editingId);
                     if (index !== -1) {
                         songs[index] = { ...songs[index], ...songData };
                         showDialog('曲情報を更新しました。', 'alert');
                     }
                 } else {
-                    // Add new
                     songs.push({
                         id: Date.now() + Math.random(),
                         ...songData
@@ -632,7 +643,6 @@
                 els.inputs.partDivision.checked = false;
                 els.inputs.practicing.checked = false;
                 els.inputs.reviewNeeded.checked = false;
-                
                 editingId = null;
                 
                 els.form.titleText.innerText = "新規登録";
@@ -657,22 +667,15 @@
                 });
             }
 
+            // Updated Move Logic for Reverse Display
+            // "Up" in UI (visual up) = Newer = Index+1 in underlying 'songs' array
+            // "Down" in UI (visual down) = Older = Index-1 in underlying 'songs' array
+            // Note: Filtered list is also bottom-up (Old->New). 
             function moveSong(id, direction) {
                 const globalIndex = songs.findIndex(s => s.id === id);
                 if (globalIndex === -1) return;
 
-                // When searching, we should probably disable moving OR enable it within global context
-                // For now, let's keep logic simple: swap in global array.
-                // However, visual feedback might be confusing if filtered.
-                // But user asked for "move" function previously so we keep it.
-                
-                // Find swap target
-                let swapTargetGlobalIndex = -1;
-                
-                // Simple logic: Swap with adjacent element in global array (might not be visible in filter)
-                // Better logic: Swap with adjacent element in *filtered view*
-                
-                // Get current filtered list (respecting search & tabs)
+                // Create a filtered list to find the adjacent item in the *filtered* view
                 let currentList = songs;
                 if (activeTab !== 'ALL') currentList = currentList.filter(s => s.singer === activeTab);
                 if (searchQuery) {
@@ -683,15 +686,23 @@
                     });
                 }
 
+                // Find index in the filtered list (Old -> New)
                 const visualIndex = currentList.findIndex(s => s.id === id);
                 if (visualIndex === -1) return;
 
                 let targetVisualIndex = -1;
-                if (direction === 'up' && visualIndex > 0) targetVisualIndex = visualIndex - 1;
-                if (direction === 'down' && visualIndex < currentList.length - 1) targetVisualIndex = visualIndex + 1;
+                // UI "Up" means visually higher (newer). In Old->New list, this is index + 1.
+                if (direction === 'up' && visualIndex < currentList.length - 1) {
+                    targetVisualIndex = visualIndex + 1;
+                }
+                // UI "Down" means visually lower (older). In Old->New list, this is index - 1.
+                if (direction === 'down' && visualIndex > 0) {
+                    targetVisualIndex = visualIndex - 1;
+                }
 
                 if (targetVisualIndex !== -1) {
                     const swapSong = currentList[targetVisualIndex];
+                    // Find swap song in global list
                     const swapGlobalIndex = songs.findIndex(s => s.id === swapSong.id);
                     
                     // Swap
@@ -722,7 +733,6 @@
                     }
                 };
                 reader.readAsText(file);
-                // Reset input
                 input.value = '';
             }
 
@@ -867,22 +877,9 @@
             render();
 
             return {
-                addSong: addSong, 
-                saveSong: saveSong,
-                editSong: editSong,
-                cancelEdit: cancelEdit,
-                deleteSong: deleteSong, 
-                moveSong: moveSong, 
-                setActiveTab: setActiveTab, 
-                setSearchQuery: setSearchQuery,
-                openRoomModal: openRoomModal,
-                closeRoomModal: closeRoomModal,
-                selectPort: selectPort,
-                setCustomPort: setCustomPort,
-                setPage: setPage, 
-                saveToGAS: saveToGAS, 
-                loadFromGAS: loadFromGAS, 
-                importFile: importFile
+                addSong, deleteSong, moveSong, setActiveTab, setPage,
+                saveToGAS, loadFromGAS, importFile, triggerSearch, setSearchQuery,
+                openRoomModal, closeRoomModal, selectPort, setCustomPort, saveSong, editSong, cancelEdit
             };
         })();
     </script>
