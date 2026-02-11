@@ -651,7 +651,7 @@
                     try {
                         const importedData = JSON.parse(e.target.result);
                         if (Array.isArray(importedData)) {
-                            showDialog(`ファイルから ${importedData.length} 件のデータを読み込みました。\n反映するには「同期して保存」を押してください。`, 'alert');
+                            showDialog(`ファイルから ${importedData.length} 件のデータを読み込みました (JSON)。\n反映するには「同期して保存」を押してください。`, 'alert');
                             songs = importedData; render();
                         } else { showDialog('JSONデータの形式が正しくありません。', 'alert'); }
                     } catch (error) { showDialog('ファイルの読み込みに失敗しました。', 'alert'); }
@@ -667,33 +667,90 @@
                 reader.onload = function(e) {
                     try {
                         const text = e.target.result;
-                        const rows = text.split(/\r\n|\n/);
-                        const dataRows = rows.slice(1).filter(r => r.trim() !== '');
-                        let addedCount = 0, updatedCount = 0;
-                        dataRows.forEach(rowStr => {
-                            const matches = rowStr.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
-                            if (!matches) return;
-                            const row = matches.map(m => m.replace(/^"|"$/g, '').trim());
-                            if (row.length < 4) return;
-                            const [newSinger, newWork, newArtist, newSong] = row;
-                            if (!newSong) return;
-                            const isPart = (row[4] === '1'), isPrac = (row[5] === '1'), isRev = (row[6] === '1');
-                            const existingIndex = songs.findIndex(s => s.singer === newSinger && s.song === newSong);
-                            if (existingIndex !== -1) {
-                                songs[existingIndex] = { ...songs[existingIndex], work: newWork, artist: newArtist, isPartDivision: isPart, isPracticing: isPrac, isReviewNeeded: isRev };
-                                updatedCount++;
-                            } else {
-                                songs.push({ id: Date.now() + Math.random(), singer: newSinger, work: newWork, artist: newArtist, song: newSong, isPartDivision: isPart, isPracticing: isPrac, isReviewNeeded: isRev });
-                                addedCount++;
-                            }
-                        });
-                        showDialog(`CSVインポート完了:\n追加: ${addedCount}件\n更新: ${updatedCount}件\n反映するには「同期して保存」を押してください。`, 'alert');
-                        render();
-                    } catch (error) { showDialog('CSVの読み込みに失敗しました。', 'alert'); }
+                        importCSV(text);
+                    } catch (error) { showDialog('ファイルの読み込みに失敗しました。', 'alert'); }
                 };
                 reader.readAsText(file);
                 input.value = '';
                 closeCSVModal();
+            }
+
+            function normalizeStr(str) {
+                if (!str) return '';
+                // Normalize to NFKC, replace full-width space with half-width, trim
+                return str.normalize('NFKC').replace(/[\s\u3000]+/g, ' ').trim();
+            }
+
+            function importCSV(csvText) {
+                const rows = csvText.split(/\r\n|\n/);
+                const dataRows = rows.slice(1).filter(r => r.trim() !== '');
+                let addedCount = 0, updatedCount = 0;
+                
+                dataRows.forEach(rowStr => {
+                    let row = [];
+                    let inQuote = false;
+                    let currentField = '';
+                    for (let i = 0; i < rowStr.length; i++) {
+                        const char = rowStr[i];
+                        if (char === '"') {
+                            if (i + 1 < rowStr.length && rowStr[i + 1] === '"') { currentField += '"'; i++; } 
+                            else { inQuote = !inQuote; }
+                        } else if (char === ',' && !inQuote) {
+                            row.push(currentField); currentField = '';
+                        } else { currentField += char; }
+                    }
+                    row.push(currentField);
+                    row = row.map(f => f.trim()); // Basic trim
+
+                    if (row.length < 4) return;
+
+                    const newSinger = row[0];
+                    const newWork = row[1];
+                    const newArtist = row[2];
+                    let newSong = row[3];
+                    if (!newSong) return;
+
+                    let isPart = (row[4] === '1' || row[4]?.toLowerCase() === 'true');
+                    let isPrac = (row[5] === '1' || row[5]?.toLowerCase() === 'true');
+                    let isRev = (row[6] === '1' || row[6]?.toLowerCase() === 'true');
+
+                    // CLEANUP LOGIC: Specified patterns only
+                    // Patterns: (パート分け), (練習中), (要復習) and their full-width versions
+                    
+                    const patterns = [
+                        { regex: /[\(（]パート分け[\)）]/, key: 'part' },
+                        { regex: /[\(（]練習中[\)）]/, key: 'prac' },
+                        { regex: /[\(（]要復習[\)）]/, key: 'rev' }
+                    ];
+
+                    patterns.forEach(p => {
+                        if (p.regex.test(newSong)) {
+                            if (p.key === 'part') isPart = true;
+                            if (p.key === 'prac') isPrac = true;
+                            if (p.key === 'rev') isRev = true;
+                            newSong = newSong.replace(p.regex, '').trim();
+                        }
+                    });
+                    
+                    // Normalize for comparison
+                    const normSinger = normalizeStr(newSinger);
+                    const normSong = normalizeStr(newSong);
+
+                    const existingIndex = songs.findIndex(s => 
+                        normalizeStr(s.singer) === normSinger && 
+                        normalizeStr(s.song) === normSong
+                    );
+
+                    if (existingIndex !== -1) {
+                        songs[existingIndex] = { ...songs[existingIndex], work: newWork, artist: newArtist, isPartDivision: isPart, isPracticing: isPrac, isReviewNeeded: isRev };
+                        updatedCount++;
+                    } else {
+                        songs.push({ id: Date.now() + Math.random(), singer: newSinger, work: newWork, artist: newArtist, song: newSong, isPartDivision: isPart, isPracticing: isPrac, isReviewNeeded: isRev });
+                        addedCount++;
+                    }
+                });
+                showDialog(`CSVインポート完了:\n追加: ${addedCount}件\n更新: ${updatedCount}件\n反映するには「同期して保存」を押してください。`, 'alert');
+                render();
             }
 
             async function saveToGAS() {
