@@ -302,10 +302,14 @@
                 <i data-lucide="file-spreadsheet" class="text-green-600"></i> CSV操作
             </h3>
             <div class="space-y-3">
-                <p class="text-xs text-gray-500 text-left mb-2">リストのバックアップや、Excel等での一括編集に利用できます。</p>
+                <p class="text-xs text-gray-500 text-left mb-2">用途に合わせて出力形式を選択してください。</p>
                 
-                <button onclick="app.exportCSV()" class="w-full py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors border border-blue-200">
-                    <i data-lucide="download"></i> CSVエクスポート (様式出力)
+                <button onclick="app.exportCSV(true)" class="w-full py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors border border-blue-200">
+                    <i data-lucide="download"></i> 全件エクスポート (バックアップ)
+                </button>
+
+                <button onclick="app.exportCSV(false)" class="w-full py-3 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors border border-gray-200">
+                    <i data-lucide="file-plus"></i> 様式のみエクスポート (追加用)
                 </button>
                 
                 <div class="border-t border-gray-100 my-2"></div>
@@ -626,21 +630,33 @@
             function openCSVModal() { els.modals.csv.classList.remove('hidden'); }
             function closeCSVModal() { els.modals.csv.classList.add('hidden'); }
             
-            function exportCSV() {
+            function exportCSV(withData = true) {
                 const BOM = '\uFEFF';
                 const header = ['歌唱者', '作品名', '歌手', '曲名', 'パート分け', '練習中', '要復習'];
                 const csvRows = [header.join(',')];
-                songs.forEach(s => {
-                    const row = [ s.singer||'', s.work||'', s.artist||'', s.song||'', s.isPartDivision?'1':'', s.isPracticing?'1':'', s.isReviewNeeded?'1':'' ].map(field => {
-                        const stringField = String(field);
-                        return (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n')) ? `"${stringField.replace(/"/g, '""')}"` : stringField;
+                
+                if (withData) {
+                    songs.forEach(s => {
+                        const row = [ s.singer||'', s.work||'', s.artist||'', s.song||'', s.isPartDivision?'1':'', s.isPracticing?'1':'', s.isReviewNeeded?'1':'' ].map(field => {
+                            const stringField = String(field);
+                            return (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n')) ? `"${stringField.replace(/"/g, '""')}"` : stringField;
+                        });
+                        csvRows.push(row.join(','));
                     });
-                    csvRows.push(row.join(','));
-                });
-                const blob = new Blob([BOM + csvRows.join('\r\n')], { type: 'text/csv' });
+                }
+
+                const csvString = BOM + csvRows.join('\r\n');
+                const blob = new Blob([csvString], { type: 'text/csv' });
                 const url = URL.createObjectURL(blob);
-                const a = document.createElement('a'); a.href = url; a.download = `karaoke_list_${new Date().toISOString().slice(0,10)}.csv`; a.click();
-                URL.revokeObjectURL(url); closeCSVModal();
+                const a = document.createElement('a');
+                a.href = url;
+                // ファイル名を変更: データありなら日付入り、なしならテンプレート名
+                a.download = withData 
+                    ? `karaoke_list_backup_${new Date().toISOString().slice(0,10)}.csv` 
+                    : `karaoke_list_template.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+                closeCSVModal();
             }
 
             function handleJSONImport(input) {
