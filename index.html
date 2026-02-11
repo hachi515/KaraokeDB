@@ -295,7 +295,7 @@
                         const searchUrl = `http://ykr.moe:11059/search_listerdb_filelist.php?anyword=${encodeURIComponent((song.song + ' ' + (song.work||'') + ' ' + (song.artist||'')).trim())}`;
                         
                         // パート分けの表示ロジック
-                        onst partDivisionLabel = song.isPartDivision ? '<span class="text-red-600 text-xs ml-1 font-normal">(パート分け)</span>' : '';
+                        const partDivisionLabel = song.isPartDivision ? '<span class="text-red-400 opacity-80 text-xs ml-1 font-normal">(パート分け)</span>' : '';
 
                         return `
                         <div class="group grid grid-cols-12 gap-2 md:gap-4 px-2 md:px-4 py-3 mb-1 items-center bg-white border border-gray-100 rounded-lg hover:shadow-md hover:border-blue-200 transition-all duration-200">
@@ -471,20 +471,20 @@
                 updateStatus('サーバーと同期中...', true);
 
                 try {
-                    // 1. Get Latest from Server (Check for new items from others)
+                    // 1. Get Latest from Server (Check for new items from others) with cache busting
                     let serverSongs = [];
                     try {
-                        const res = await fetch(GAS_API_URL);
-                        const data = await res.json();
-                        // Check if response is valid array
-                        if (Array.isArray(data)) {
-                            serverSongs = data;
-                        }
-                    } catch(e) { console.log('First save or fetch error', e); }
+                        const res = await fetch(GAS_API_URL + '?t=' + new Date().getTime());
+                        const text = await res.text();
+                        try {
+                            const data = JSON.parse(text);
+                            if (Array.isArray(data)) {
+                                serverSongs = data;
+                            }
+                        } catch(e) { console.log('JSON Parse error', e); }
+                    } catch(e) { console.log('Fetch error', e); }
 
                     // 2. Merge Logic
-                    // Base is LOCAL songs (to keep local edits/order).
-                    // Add items from SERVER that are not in local AND not in deletedIds.
                     const localIds = new Set(songs.map(s => s.id));
                     const newServerSongs = serverSongs.filter(s => 
                         !localIds.has(s.id) && !deletedIds.includes(s.id)
@@ -522,9 +522,21 @@
                 const runLoad = async () => {
                     updateStatus('読み込み中...', true);
                     try {
-                        const res = await fetch(GAS_API_URL);
-                        const data = await res.json();
+                        const res = await fetch(GAS_API_URL + '?t=' + new Date().getTime());
                         
+                        if (!res.ok) {
+                            throw new Error(`サーバーエラー: ${res.status} ${res.statusText}`);
+                        }
+
+                        const text = await res.text();
+                        let data;
+                        try {
+                            data = JSON.parse(text);
+                        } catch(e) {
+                            console.error("Parse Error:", text);
+                            throw new Error("サーバーからの応答が不正です。\n(HTMLが返されました。GASのアクセス権限を確認してください)");
+                        }
+
                         if (Array.isArray(data)) {
                             songs = data;
                             activeTab = 'ALL';
@@ -535,10 +547,10 @@
                             updateStatus('読み込み完了');
                             setTimeout(() => updateStatus(``), 3000);
                         } else {
-                            throw new Error('Invalid data format');
+                            throw new Error('データ形式が不正です');
                         }
                     } catch (error) {
-                        if(!silent) showDialog(`読み込みエラー: ${error.message}\nGASのアクセス権限が「全員」になっているか確認してください。`, 'alert');
+                        if(!silent) showDialog(`【通信エラー】\n${error.message}\n\n考えられる原因:\n1. GASのデプロイが「新バージョン」で更新されていない\n2. アクセス権限が「全員」になっていない\n3. URLが間違っている`, 'alert');
                         updateStatus('エラー');
                     }
                 };
@@ -605,4 +617,3 @@
     </script>
 </body>
 </html>
-
