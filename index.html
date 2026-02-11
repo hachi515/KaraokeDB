@@ -295,7 +295,7 @@
                         const searchUrl = `http://ykr.moe:11059/search_listerdb_filelist.php?anyword=${encodeURIComponent((song.song + ' ' + (song.work||'') + ' ' + (song.artist||'')).trim())}`;
                         
                         // パート分けの表示ロジック
-                        const partDivisionLabel = song.isPartDivision ? '<span class="text-red-400 opacity-80 text-xs ml-1 font-normal">(パート分け)</span>' : '';
+                        onst partDivisionLabel = song.isPartDivision ? '<span class="text-red-600 text-xs ml-1 font-normal">(パート分け)</span>' : '';
 
                         return `
                         <div class="group grid grid-cols-12 gap-2 md:gap-4 px-2 md:px-4 py-3 mb-1 items-center bg-white border border-gray-100 rounded-lg hover:shadow-md hover:border-blue-200 transition-all duration-200">
@@ -605,3 +605,4 @@
     </script>
 </body>
 </html>
+
