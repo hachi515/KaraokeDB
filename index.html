@@ -135,24 +135,49 @@
                     </div>
                 </div>
 
-                <!-- Singer Filter (Dropdown) -->
+                <!-- Singer Filter & Search -->
                 <div class="flex-1 flex flex-col">
                     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">表示フィルター</h3>
-                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                        <label class="block text-xs font-bold text-gray-500 mb-2">歌唱者を選択</label>
-                        <div class="relative">
-                            <select id="singer-filter-select" onchange="app.setActiveTab(this.value)" 
-                                class="w-full pl-3 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer">
-                                <option value="ALL">全ての歌唱者を表示</option>
-                                <!-- Options will be injected here -->
-                            </select>
-                            <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-gray-500">
-                                <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-4">
+                        
+                        <!-- Singer Select -->
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-2">歌唱者を選択</label>
+                            <div class="relative">
+                                <select id="singer-filter-select" onchange="app.setActiveTab(this.value)" 
+                                    class="w-full pl-3 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer">
+                                    <option value="ALL">全ての歌唱者を表示</option>
+                                    <!-- Options will be injected here -->
+                                </select>
+                                <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-gray-500">
+                                    <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                                </div>
+                            </div>
+                            <div class="mt-2 text-xs text-gray-400 text-right" id="singer-count-display">
+                                <!-- Count display -->
                             </div>
                         </div>
-                        <div class="mt-2 text-xs text-gray-400 text-right" id="singer-count-display">
-                            <!-- Count display -->
+
+                        <!-- Search Box -->
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-2">リスト内検索</label>
+                            <div class="relative">
+                                <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-gray-400"></i>
+                                <input type="text" id="list-search-input" oninput="app.setSearchQuery(this.value)" placeholder="曲名・作品名など (スペースでAND検索)"
+                                    class="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
+                            </div>
                         </div>
+
+                        <!-- Target Port Selection -->
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-2">検索先の機材係 (部屋)</label>
+                            <button onclick="app.openRoomModal()" id="current-room-btn"
+                                class="w-full text-left px-3 py-2 bg-green-50 border border-green-200 hover:bg-green-100 text-green-700 rounded-lg text-xs font-bold flex items-center justify-between transition-colors">
+                                <span><i data-lucide="monitor" class="w-3 h-3 inline mr-1"></i> <span id="current-room-name">つぼはち部屋 (11059)</span></span>
+                                <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                            </button>
+                        </div>
+
                     </div>
                 </div>
             </div>
@@ -224,6 +249,32 @@
         </div>
     </div>
 
+    <!-- Room Selection Modal -->
+    <div id="room-dialog" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 relative modal-animate flex flex-col max-h-[90vh]">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <i data-lucide="monitor" class="text-green-500"></i> 機材係 (部屋) 選択
+                </h3>
+                <button onclick="app.closeRoomModal()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x"></i></button>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-xs font-bold text-gray-500 mb-1">ポート番号を直接入力 (任意)</label>
+                <div class="flex gap-2">
+                    <input type="number" id="room-input-port" placeholder="11059" class="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500">
+                    <button onclick="app.setCustomPort()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-lg whitespace-nowrap">設定</button>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto custom-scrollbar border-t border-gray-100 pt-4">
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" id="room-buttons-container">
+                    <!-- Buttons injected via JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         const app = (() => {
             // ▼▼▼ GASのウェブアプリURL (設定済み) ▼▼▼
@@ -237,14 +288,27 @@
                 { id: 3, singer: 'V.A.', work: 'Compilation', artist: 'Unknown', song: '私は、わたしの事が好き。' },
             ];
 
+            const ROOMS = {
+                11000: "ゆーふうりん部屋", 11001: "ゆーふうりん部屋", 11002: "ゆーふうりん部屋", 11003: "ゆーふうりん部屋", 11004: "ゆーふうりん部屋",
+                11005: "ゆーふうりん部屋", 11006: "ゆーふうりん部屋", 11007: "ゆーふうりん部屋", 11008: "ゆーふうりん部屋", 11009: "ゆーふうりん部屋",
+                11012: "加古部屋", 11021: "成田部屋", 11022: "成田部屋", 11028: "タマ部屋", 11058: "すみた部屋", 11059: "つぼはち部屋",
+                11063: "なぎ部屋", 11064: "naoo部屋", 11066: "芝ちゃん部屋", 11067: "crom部屋", 11068: "けんしん部屋", 11069: "けんちぃ部屋",
+                11070: "黒河部屋", 11071: "黒河部屋", 11074: "tukinowa部屋", 11077: "v3部屋", 11078: "のんでるん部屋", 11079: "まどか部屋",
+                11084: "タカヒロ部屋", 11085: "タカヒロ部屋", 11086: "タカヒロ部屋", 11087: "MiO部屋", 11088: "ほっしー部屋",
+                11091: "千秋部屋", 11092: "ヒロ部屋", 11101: "えみち部屋", 11102: "るえ部屋", 11103: "ながし部屋", 11104: "MrN部屋",
+                11105: "ヤマテル部屋", 11106: "冨塚部屋", 11107: "ブルーベリー部屋", 11108: "コタ部屋", 11109: "姫部屋"
+            };
+
             // Local Storage Logic
             let storedData = localStorage.getItem('myMusicList');
             let songs = storedData ? JSON.parse(storedData) : initialData;
             
             let deletedIds = JSON.parse(localStorage.getItem('deletedIds')) || [];
             let activeTab = 'ALL';
+            let searchQuery = '';
+            let targetPort = parseInt(localStorage.getItem('targetPort')) || 11059;
             let currentPage = 1;
-            let editingId = null; // ID of the song currently being edited
+            let editingId = null; 
 
             const els = {
                 singerFilterSelect: document.getElementById('singer-filter-select'),
@@ -254,6 +318,9 @@
                 listTitle: document.getElementById('list-title'),
                 singerOptions: document.getElementById('singer-options'),
                 pagination: document.getElementById('pagination-container'),
+                roomNameDisplay: document.getElementById('current-room-name'),
+                roomInputPort: document.getElementById('room-input-port'),
+                roomButtonsContainer: document.getElementById('room-buttons-container'),
                 inputs: {
                     singer: document.getElementById('input-singer'),
                     work: document.getElementById('input-work'),
@@ -270,7 +337,10 @@
                     submitBtn: document.getElementById('submit-btn'),
                     cancelBtn: document.getElementById('cancel-edit-btn')
                 },
-                modals: { dialog: document.getElementById('custom-dialog') },
+                modals: { 
+                    dialog: document.getElementById('custom-dialog'),
+                    room: document.getElementById('room-dialog')
+                },
                 status: document.getElementById('status-message'),
                 refreshIcon: document.getElementById('refresh-icon')
             };
@@ -281,7 +351,7 @@
                 localStorage.setItem('myMusicList', JSON.stringify(songs));
                 const uniqueSingers = [...new Set(songs.map(s => s.singer).filter(Boolean))];
                 
-                // Update Dropdown if needed
+                // Update Dropdown
                 if (!els.singerFilterSelect.innerHTML.includes(`value="${activeTab}"`) || els.singerFilterSelect.options.length !== uniqueSingers.length + 1) {
                     let optionsHtml = `<option value="ALL">全ての歌唱者を表示 (${songs.length})</option>`;
                     uniqueSingers.forEach(singer => {
@@ -295,21 +365,39 @@
                 els.singerCountDisplay.innerText = `登録数: ${uniqueSingers.length}人`;
                 els.singerOptions.innerHTML = uniqueSingers.map(s => `<option value="${s}"></option>`).join('');
 
-                // Filter & Pagination
-                const filteredSongs = activeTab === 'ALL' ? songs : songs.filter(s => s.singer === activeTab);
-                
-                // Reverse for display: Show newest first
-                const reversedSongs = [...filteredSongs].reverse();
+                // Update Room Display
+                const roomName = ROOMS[targetPort] ? ROOMS[targetPort] : 'カスタム部屋';
+                els.roomNameDisplay.innerText = `${roomName} (${targetPort})`;
 
-                const totalPages = Math.ceil(reversedSongs.length / ITEMS_PER_PAGE) || 1;
+                // Filter Logic (Singer + Search Query)
+                let filteredSongs = songs;
+                
+                // 1. Singer Filter
+                if (activeTab !== 'ALL') {
+                    filteredSongs = filteredSongs.filter(s => s.singer === activeTab);
+                }
+
+                // 2. Search Query Filter (AND search)
+                if (searchQuery) {
+                    // Split query by space (full-width or half-width)
+                    const queries = searchQuery.toLowerCase().replace(/　/g, ' ').split(' ').filter(q => q);
+                    
+                    filteredSongs = filteredSongs.filter(s => {
+                        const targetText = `${s.song} ${s.work} ${s.artist}`.toLowerCase();
+                        // Check if all query words exist in target text
+                        return queries.every(q => targetText.includes(q));
+                    });
+                }
+
+                // Pagination
+                const totalPages = Math.ceil(filteredSongs.length / ITEMS_PER_PAGE) || 1;
                 
                 if (currentPage > totalPages) currentPage = totalPages;
                 if (currentPage < 1) currentPage = 1;
 
                 const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
                 const endIdx = startIdx + ITEMS_PER_PAGE;
-                // Slice from reversed array
-                const displaySongs = reversedSongs.slice(startIdx, endIdx);
+                const displaySongs = filteredSongs.slice(startIdx, endIdx);
 
                 els.songCount.innerText = `${filteredSongs.length} tracks`;
                 els.listTitle.innerHTML = activeTab === 'ALL' 
@@ -325,32 +413,26 @@
                     `;
                 } else {
                     els.songList.innerHTML = displaySongs.map((song, i) => {
-                        // Calculate global index relative to original list (Oldest = 1, Newest = N)
-                        // But displayed from top: Newest is displayed first with highest number.
-                        // Formula: Total - (offset + current_index)
-                        const globalIndex = filteredSongs.length - (startIdx + i);
-                        const searchUrl = `http://ykr.moe:11059/search_listerdb_filelist.php?anyword=${encodeURIComponent((song.song + ' ' + (song.work||'') + ' ' + (song.artist||'')).trim())}`;
+                        // Global index approximation for display (within filtered set)
+                        const displayIndex = startIdx + i + 1; 
                         
-                        // ラベル表示ロジック
+                        // Search URL using Target Port
+                        const searchParam = encodeURIComponent((song.song + ' ' + (song.work||'') + ' ' + (song.artist||'')).trim());
+                        const searchUrl = `http://ykr.moe:${targetPort}/search_listerdb_filelist.php?anyword=${searchParam}`;
+                        
+                        // Labels
                         let labels = '';
-                        if (song.isPartDivision) {
-                            labels += '<span class="text-red-400 opacity-80 text-xs ml-1 font-normal break-keep">(パート分け)</span>';
-                        }
-                        if (song.isPracticing) {
-                            labels += '<span class="text-blue-500 opacity-80 text-xs ml-1 font-normal break-keep">(練習中)</span>';
-                        }
-                        if (song.isReviewNeeded) {
-                            labels += '<span class="text-yellow-600 opacity-90 text-xs ml-1 font-normal break-keep">(要復習)</span>';
-                        }
+                        if (song.isPartDivision) labels += '<span class="text-red-400 opacity-80 text-xs ml-1 font-normal break-keep">(パート分け)</span>';
+                        if (song.isPracticing) labels += '<span class="text-blue-500 opacity-80 text-xs ml-1 font-normal break-keep">(練習中)</span>';
+                        if (song.isReviewNeeded) labels += '<span class="text-yellow-600 opacity-90 text-xs ml-1 font-normal break-keep">(要復習)</span>';
 
-                        // 編集中はハイライト
                         const isEditing = song.id === editingId;
                         const rowClass = isEditing ? 'bg-blue-50 border-blue-300' : 'bg-white border-gray-100 hover:shadow-md hover:border-blue-200';
 
                         return `
                         <div class="group grid grid-cols-12 gap-2 md:gap-4 px-2 md:px-4 py-3 mb-1 items-center border rounded-lg transition-all duration-200 ${rowClass}">
                             <div class="col-span-1 text-center text-gray-400 font-mono text-xs md:text-sm group-hover:text-blue-500">
-                                ${globalIndex}
+                                ${displayIndex}
                             </div>
                             <div class="col-span-4 md:col-span-5 min-w-0">
                                 <div class="font-bold text-gray-800 text-xs md:text-sm break-words whitespace-normal leading-tight">
@@ -418,10 +500,58 @@
                 render();
             }
 
+            function setSearchQuery(query) {
+                searchQuery = query;
+                currentPage = 1;
+                render();
+            }
+
             function setPage(page) {
                 currentPage = page;
                 render();
             }
+
+            // --- Room Setting Actions ---
+
+            function openRoomModal() {
+                // Generate Buttons
+                let html = '';
+                for (const [port, name] of Object.entries(ROOMS)) {
+                    const isSelected = parseInt(port) === targetPort;
+                    const bgClass = isSelected ? 'bg-green-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200';
+                    html += `
+                        <button onclick="app.selectPort(${port})" class="px-3 py-2 rounded-lg text-xs font-bold transition-all ${bgClass}">
+                            ${name} <span class="opacity-70 text-[10px] block font-normal">${port}</span>
+                        </button>
+                    `;
+                }
+                els.roomButtonsContainer.innerHTML = html;
+                els.roomInputPort.value = targetPort;
+                
+                els.modals.room.classList.remove('hidden');
+            }
+
+            function closeRoomModal() {
+                els.modals.room.classList.add('hidden');
+            }
+
+            function selectPort(port) {
+                targetPort = parseInt(port);
+                localStorage.setItem('targetPort', targetPort);
+                closeRoomModal();
+                render();
+            }
+
+            function setCustomPort() {
+                const port = parseInt(els.roomInputPort.value);
+                if (port && port > 0) {
+                    selectPort(port);
+                } else {
+                    showDialog('有効なポート番号を入力してください', 'alert');
+                }
+            }
+
+            // --- Song Edit Actions ---
 
             function saveSong() { // Combined Add/Update function
                 const singer = els.inputs.singer.value.trim();
@@ -453,7 +583,7 @@
                         showDialog('曲情報を更新しました。', 'alert');
                     }
                 } else {
-                    // Add new (append to end of array -> shown at top of reversed list)
+                    // Add new
                     songs.push({
                         id: Date.now() + Math.random(),
                         ...songData
@@ -469,7 +599,6 @@
                 const song = songs.find(s => s.id === id);
                 if (!song) return;
 
-                // Set values to inputs
                 els.inputs.singer.value = song.singer || '';
                 els.inputs.work.value = song.work || '';
                 els.inputs.artist.value = song.artist || '';
@@ -478,20 +607,17 @@
                 els.inputs.practicing.checked = song.isPracticing || false;
                 els.inputs.reviewNeeded.checked = song.isReviewNeeded || false;
 
-                // Set editing state
                 editingId = id;
                 
-                // Update UI to Edit Mode
                 els.form.titleText.innerText = "登録情報を編集";
                 els.form.icon.setAttribute('data-lucide', 'edit-3');
                 els.form.submitBtn.innerText = "更新する";
                 els.form.submitBtn.className = "w-full py-2.5 mt-2 bg-green-600 hover:bg-green-700 text-white text-sm font-bold rounded-lg shadow-md hover:shadow-lg transition-all active:scale-[0.98]";
                 els.form.cancelBtn.classList.remove('hidden');
                 
-                // Scroll to form
                 els.form.container.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 lucide.createIcons();
-                render(); // To highlight row
+                render(); 
             }
 
             function cancelEdit() {
@@ -503,15 +629,12 @@
                 els.inputs.song.value = '';
                 els.inputs.work.value = '';
                 els.inputs.artist.value = '';
-                // Checkboxes reset
                 els.inputs.partDivision.checked = false;
                 els.inputs.practicing.checked = false;
                 els.inputs.reviewNeeded.checked = false;
                 
-                // Reset editing state
                 editingId = null;
                 
-                // Reset UI
                 els.form.titleText.innerText = "新規登録";
                 els.form.icon.setAttribute('data-lucide', 'plus');
                 els.form.submitBtn.innerText = "リストに追加";
@@ -520,7 +643,6 @@
                 lucide.createIcons();
             }
 
-            // Alias for backward compatibility if button onclick uses addSong
             function addSong() { saveSong(); }
 
             function deleteSong(id) {
@@ -539,21 +661,40 @@
                 const globalIndex = songs.findIndex(s => s.id === id);
                 if (globalIndex === -1) return;
 
-                const filtered = activeTab === 'ALL' ? songs : songs.filter(s => s.singer === activeTab);
-                const visualIndex = filtered.findIndex(s => s.id === id);
+                // When searching, we should probably disable moving OR enable it within global context
+                // For now, let's keep logic simple: swap in global array.
+                // However, visual feedback might be confusing if filtered.
+                // But user asked for "move" function previously so we keep it.
+                
+                // Find swap target
+                let swapTargetGlobalIndex = -1;
+                
+                // Simple logic: Swap with adjacent element in global array (might not be visible in filter)
+                // Better logic: Swap with adjacent element in *filtered view*
+                
+                // Get current filtered list (respecting search & tabs)
+                let currentList = songs;
+                if (activeTab !== 'ALL') currentList = currentList.filter(s => s.singer === activeTab);
+                if (searchQuery) {
+                     const queries = searchQuery.toLowerCase().replace(/　/g, ' ').split(' ').filter(q => q);
+                     currentList = currentList.filter(s => {
+                        const targetText = `${s.song} ${s.work} ${s.artist}`.toLowerCase();
+                        return queries.every(q => targetText.includes(q));
+                    });
+                }
+
+                const visualIndex = currentList.findIndex(s => s.id === id);
                 if (visualIndex === -1) return;
-                
+
                 let targetVisualIndex = -1;
-                
-                // Reverse logic for visual consistency:
-                // 'up' arrow means visually moving up (to newer/higher index)
-                // 'down' arrow means visually moving down (to older/lower index)
-                if (direction === 'up' && visualIndex < filtered.length - 1) targetVisualIndex = visualIndex + 1;
-                if (direction === 'down' && visualIndex > 0) targetVisualIndex = visualIndex - 1;
+                if (direction === 'up' && visualIndex > 0) targetVisualIndex = visualIndex - 1;
+                if (direction === 'down' && visualIndex < currentList.length - 1) targetVisualIndex = visualIndex + 1;
 
                 if (targetVisualIndex !== -1) {
-                    const swapSong = filtered[targetVisualIndex];
+                    const swapSong = currentList[targetVisualIndex];
                     const swapGlobalIndex = songs.findIndex(s => s.id === swapSong.id);
+                    
+                    // Swap
                     [songs[globalIndex], songs[swapGlobalIndex]] = [songs[swapGlobalIndex], songs[globalIndex]];
                     render();
                 }
@@ -691,7 +832,6 @@
                 } else {
                     els.status.classList.remove('animate-pulse');
                 }
-                // Stop spinning the refresh icon (removed animate-spin-slow class addition)
                 if (els.refreshIcon) els.refreshIcon.classList.remove('animate-spin-slow');
             }
 
@@ -734,6 +874,11 @@
                 deleteSong: deleteSong, 
                 moveSong: moveSong, 
                 setActiveTab: setActiveTab, 
+                setSearchQuery: setSearchQuery,
+                openRoomModal: openRoomModal,
+                closeRoomModal: closeRoomModal,
+                selectPort: selectPort,
+                setCustomPort: setCustomPort,
                 setPage: setPage, 
                 saveToGAS: saveToGAS, 
                 loadFromGAS: loadFromGAS, 
