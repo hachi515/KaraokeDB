@@ -78,10 +78,16 @@
             <div class="w-full md:w-80 bg-white/50 border-r border-gray-200 p-6 flex flex-col gap-6">
                 
                 <!-- Input Form -->
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                    <h2 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
-                        <i data-lucide="plus" class="text-blue-500 w-4 h-4"></i> 新規登録
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 relative transition-all duration-300" id="input-form-container">
+                    <h2 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2" id="form-title">
+                        <i data-lucide="plus" class="text-blue-500 w-4 h-4" id="form-icon"></i> <span id="form-title-text">新規登録</span>
                     </h2>
+                    
+                    <!-- Cancel Edit Button (Hidden by default) -->
+                    <button onclick="app.cancelEdit()" id="cancel-edit-btn" class="hidden absolute top-4 right-4 text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1">
+                        <i data-lucide="x" class="w-3 h-3"></i> キャンセル
+                    </button>
+
                     <div class="space-y-3">
                         <div class="relative">
                             <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Singer</label>
@@ -104,13 +110,26 @@
                                 class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
                         </div>
 
-                        <!-- Checkbox for Part Division -->
-                        <div class="flex items-center gap-2 pt-1">
-                            <input type="checkbox" id="input-part-division" class="w-4 h-4 text-blue-600 bg-gray-50 border-gray-300 rounded focus:ring-blue-500 cursor-pointer">
-                            <label for="input-part-division" class="text-xs text-gray-600 cursor-pointer select-none font-medium">パート分け</label>
+                        <!-- Checkboxes: Tags -->
+                        <div class="flex flex-wrap items-center gap-4 pt-1">
+                            <!-- Part Division -->
+                            <div class="flex items-center gap-1.5">
+                                <input type="checkbox" id="input-part-division" class="w-4 h-4 text-red-500 bg-gray-50 border-gray-300 rounded focus:ring-red-400 cursor-pointer">
+                                <label for="input-part-division" class="text-xs text-gray-600 cursor-pointer select-none font-medium">パート分け</label>
+                            </div>
+                            <!-- Practicing -->
+                            <div class="flex items-center gap-1.5">
+                                <input type="checkbox" id="input-practicing" class="w-4 h-4 text-blue-500 bg-gray-50 border-gray-300 rounded focus:ring-blue-400 cursor-pointer">
+                                <label for="input-practicing" class="text-xs text-gray-600 cursor-pointer select-none font-medium">練習中</label>
+                            </div>
+                            <!-- Review Needed -->
+                            <div class="flex items-center gap-1.5">
+                                <input type="checkbox" id="input-review-needed" class="w-4 h-4 text-yellow-500 bg-gray-50 border-gray-300 rounded focus:ring-yellow-400 cursor-pointer">
+                                <label for="input-review-needed" class="text-xs text-gray-600 cursor-pointer select-none font-medium">要復習</label>
+                            </div>
                         </div>
 
-                        <button onclick="app.addSong()" class="w-full py-2.5 mt-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg shadow-md hover:shadow-lg transition-all active:scale-[0.98]">
+                        <button onclick="app.saveSong()" id="submit-btn" class="w-full py-2.5 mt-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg shadow-md hover:shadow-lg transition-all active:scale-[0.98]">
                             リストに追加
                         </button>
                     </div>
@@ -225,6 +244,7 @@
             let deletedIds = JSON.parse(localStorage.getItem('deletedIds')) || [];
             let activeTab = 'ALL';
             let currentPage = 1;
+            let editingId = null; // ID of the song currently being edited
 
             const els = {
                 singerFilterSelect: document.getElementById('singer-filter-select'),
@@ -239,7 +259,16 @@
                     work: document.getElementById('input-work'),
                     artist: document.getElementById('input-artist'),
                     song: document.getElementById('input-song'),
-                    partDivision: document.getElementById('input-part-division')
+                    partDivision: document.getElementById('input-part-division'),
+                    practicing: document.getElementById('input-practicing'),
+                    reviewNeeded: document.getElementById('input-review-needed')
+                },
+                form: {
+                    container: document.getElementById('input-form-container'),
+                    titleText: document.getElementById('form-title-text'),
+                    icon: document.getElementById('form-icon'),
+                    submitBtn: document.getElementById('submit-btn'),
+                    cancelBtn: document.getElementById('cancel-edit-btn')
                 },
                 modals: { dialog: document.getElementById('custom-dialog') },
                 status: document.getElementById('status-message'),
@@ -294,20 +323,33 @@
                         const globalIndex = startIdx + i + 1;
                         const searchUrl = `http://ykr.moe:11059/search_listerdb_filelist.php?anyword=${encodeURIComponent((song.song + ' ' + (song.work||'') + ' ' + (song.artist||'')).trim())}`;
                         
-                        // パート分けの表示ロジック
-                        const partDivisionLabel = song.isPartDivision ? '<span class="text-red-400 text-xs ml-1 font-normal">(パート分け)</span>' : '';
+                        // ラベル表示ロジック
+                        let labels = '';
+                        if (song.isPartDivision) {
+                            labels += '<span class="text-red-400 opacity-80 text-xs ml-1 font-normal break-keep">(パート分け)</span>';
+                        }
+                        if (song.isPracticing) {
+                            labels += '<span class="text-blue-500 opacity-80 text-xs ml-1 font-normal break-keep">(練習中)</span>';
+                        }
+                        if (song.isReviewNeeded) {
+                            labels += '<span class="text-yellow-600 opacity-90 text-xs ml-1 font-normal break-keep">(要復習)</span>';
+                        }
+
+                        // 編集中はハイライト
+                        const isEditing = song.id === editingId;
+                        const rowClass = isEditing ? 'bg-blue-50 border-blue-300' : 'bg-white border-gray-100 hover:shadow-md hover:border-blue-200';
 
                         return `
-                        <div class="group grid grid-cols-12 gap-2 md:gap-4 px-2 md:px-4 py-3 mb-1 items-center bg-white border border-gray-100 rounded-lg hover:shadow-md hover:border-blue-200 transition-all duration-200">
+                        <div class="group grid grid-cols-12 gap-2 md:gap-4 px-2 md:px-4 py-3 mb-1 items-center border rounded-lg transition-all duration-200 ${rowClass}">
                             <div class="col-span-1 text-center text-gray-400 font-mono text-xs md:text-sm group-hover:text-blue-500">
                                 ${globalIndex}
                             </div>
                             <div class="col-span-4 md:col-span-5 min-w-0">
                                 <div class="font-bold text-gray-800 text-xs md:text-sm break-words whitespace-normal leading-tight">
-                                    ${song.song}${partDivisionLabel}
+                                    ${song.song}${labels}
                                 </div>
                             </div>
-                            <div class="col-span-4 md:col-span-4 min-w-0 flex flex-col justify-center">
+                            <div class="col-span-4 md:col-span-4 min-w-0 flex flex-col justify-center pr-8">
                                 <div class="text-[10px] md:text-xs text-gray-600 flex items-center gap-1 flex-wrap">
                                     <i data-lucide="mic" class="w-3 h-3 text-gray-400 flex-shrink-0"></i>
                                     <span class="break-words whitespace-normal leading-tight">${song.singer || '-'}</span>
@@ -317,7 +359,7 @@
                                 </div>
                             </div>
                             
-                            <!-- Actions Column (Expanded for mobile readability) -->
+                            <!-- Actions Column -->
                             <div class="col-span-3 md:col-span-2 flex justify-end items-center gap-1 md:gap-2">
                                 <a href="${searchUrl}" target="_self" rel="noopener noreferrer" 
                                    class="p-1.5 md:p-2 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg transition-colors border border-green-200 shadow-sm flex-shrink-0" title="検索">
@@ -325,6 +367,9 @@
                                 </a>
 
                                 <div class="flex items-center gap-0.5 md:gap-1 opacity-100 transition-opacity">
+                                    <button onclick="app.editSong(${song.id})" class="p-1.5 md:p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors" title="編集">
+                                        <i data-lucide="edit-3" class="w-3.5 h-3.5 md:w-4 md:h-4"></i>
+                                    </button>
                                     <div class="flex flex-col gap-0.5">
                                         <button onclick="app.moveSong(${song.id}, 'up')" class="p-0.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded">
                                             <i data-lucide="arrow-up" class="w-3 h-3"></i>
@@ -370,32 +415,105 @@
                 render();
             }
 
-            function addSong() {
+            function saveSong() { // Combined Add/Update function
                 const singer = els.inputs.singer.value.trim();
                 const songName = els.inputs.song.value.trim();
                 const isPartDivision = els.inputs.partDivision.checked;
+                const isPracticing = els.inputs.practicing.checked;
+                const isReviewNeeded = els.inputs.reviewNeeded.checked;
 
                 if (!songName) {
                     showDialog('曲名は必須です', 'alert');
                     return;
                 }
 
-                songs.push({
-                    id: Date.now() + Math.random(),
+                const songData = {
                     singer: singer,
                     work: els.inputs.work.value.trim(),
                     artist: els.inputs.artist.value.trim(),
                     song: songName,
-                    isPartDivision: isPartDivision
-                });
+                    isPartDivision: isPartDivision,
+                    isPracticing: isPracticing,
+                    isReviewNeeded: isReviewNeeded
+                };
+
+                if (editingId) {
+                    // Update existing
+                    const index = songs.findIndex(s => s.id === editingId);
+                    if (index !== -1) {
+                        songs[index] = { ...songs[index], ...songData };
+                        showDialog('曲情報を更新しました。', 'alert');
+                    }
+                } else {
+                    // Add new
+                    songs.push({
+                        id: Date.now() + Math.random(),
+                        ...songData
+                    });
+                }
                 
                 if (singer) activeTab = singer;
+                resetForm();
+                render();
+            }
+
+            function editSong(id) {
+                const song = songs.find(s => s.id === id);
+                if (!song) return;
+
+                // Set values to inputs
+                els.inputs.singer.value = song.singer || '';
+                els.inputs.work.value = song.work || '';
+                els.inputs.artist.value = song.artist || '';
+                els.inputs.song.value = song.song || '';
+                els.inputs.partDivision.checked = song.isPartDivision || false;
+                els.inputs.practicing.checked = song.isPracticing || false;
+                els.inputs.reviewNeeded.checked = song.isReviewNeeded || false;
+
+                // Set editing state
+                editingId = id;
+                
+                // Update UI to Edit Mode
+                els.form.titleText.innerText = "登録情報を編集";
+                els.form.icon.setAttribute('data-lucide', 'edit-3');
+                els.form.submitBtn.innerText = "更新する";
+                els.form.submitBtn.className = "w-full py-2.5 mt-2 bg-green-600 hover:bg-green-700 text-white text-sm font-bold rounded-lg shadow-md hover:shadow-lg transition-all active:scale-[0.98]";
+                els.form.cancelBtn.classList.remove('hidden');
+                
+                // Scroll to form
+                els.form.container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                lucide.createIcons();
+                render(); // To highlight row
+            }
+
+            function cancelEdit() {
+                resetForm();
+                render();
+            }
+
+            function resetForm() {
                 els.inputs.song.value = '';
                 els.inputs.work.value = '';
                 els.inputs.artist.value = '';
+                // Checkboxes reset
                 els.inputs.partDivision.checked = false;
-                render();
+                els.inputs.practicing.checked = false;
+                els.inputs.reviewNeeded.checked = false;
+                
+                // Reset editing state
+                editingId = null;
+                
+                // Reset UI
+                els.form.titleText.innerText = "新規登録";
+                els.form.icon.setAttribute('data-lucide', 'plus');
+                els.form.submitBtn.innerText = "リストに追加";
+                els.form.submitBtn.className = "w-full py-2.5 mt-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg shadow-md hover:shadow-lg transition-all active:scale-[0.98]";
+                els.form.cancelBtn.classList.add('hidden');
+                lucide.createIcons();
             }
+
+            // Alias for backward compatibility if button onclick uses addSong
+            function addSong() { saveSong(); }
 
             function deleteSong(id) {
                 showDialog('本当に削除しますか？', 'confirm', () => {
@@ -404,6 +522,7 @@
                         deletedIds.push(id);
                         localStorage.setItem('deletedIds', JSON.stringify(deletedIds));
                     }
+                    if (editingId === id) cancelEdit();
                     render();
                 });
             }
@@ -439,12 +558,6 @@
                     try {
                         const importedData = JSON.parse(e.target.result);
                         if (Array.isArray(importedData)) {
-                            // Merge Strategy: Append new items or Overwrite?
-                            // Let's replace current data to ensure complete migration, 
-                            // but asking user might be better. For now, simple replace.
-                            // Or better: Merge by ID?
-                            // Let's assume Import means "Load this list".
-                            
                             showDialog(`ファイルから ${importedData.length} 件のデータを読み込みました。\n反映するには「同期して保存」を押してください。`, 'alert');
                             songs = importedData;
                             render();
@@ -471,7 +584,7 @@
                 updateStatus('サーバーと同期中...', true);
 
                 try {
-                    // 1. Get Latest from Server (Check for new items from others) with cache busting
+                    // 1. Get Latest from Server with cache busting
                     let serverSongs = [];
                     try {
                         const res = await fetch(GAS_API_URL + '?t=' + new Date().getTime());
@@ -523,11 +636,6 @@
                     updateStatus('読み込み中...', true);
                     try {
                         const res = await fetch(GAS_API_URL + '?t=' + new Date().getTime());
-                        
-                        if (!res.ok) {
-                            throw new Error(`サーバーエラー: ${res.status} ${res.statusText}`);
-                        }
-
                         const text = await res.text();
                         let data;
                         try {
@@ -595,12 +703,9 @@
             }
 
             // Init Logic for Auto-load
-            // If LocalStorage is empty OR matches the Initial Placeholder data exactly, we auto-load from GAS.
-            // This fixes the "New Device" issue.
             const currentDataStr = JSON.stringify(songs);
             const initialDataStr = JSON.stringify(initialData);
             
-            // Only auto-load if we have a URL
             if (GAS_API_URL) {
                 if (!localStorage.getItem('myMusicList') || currentDataStr === initialDataStr) {
                     loadFromGAS(true);
@@ -610,11 +715,19 @@
             render();
 
             return {
-                addSong, deleteSong, moveSong, setActiveTab, setPage,
-                saveToGAS, loadFromGAS, importFile
+                addSong: addSong, 
+                saveSong: saveSong,
+                editSong: editSong,
+                cancelEdit: cancelEdit,
+                deleteSong: deleteSong, 
+                moveSong: moveSong, 
+                setActiveTab: setActiveTab, 
+                setPage: setPage, 
+                saveToGAS: saveToGAS, 
+                loadFromGAS: loadFromGAS, 
+                importFile: importFile
             };
         })();
     </script>
 </body>
 </html>
-
