@@ -91,8 +91,9 @@
                     <div class="space-y-3">
                         <div class="relative">
                             <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Singer</label>
-                            <input type="text" id="input-singer" placeholder="歌唱者名を入力"
+                            <input type="text" id="input-singer" list="singer-options" placeholder="歌唱者名を入力"
                                 class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
+                            <datalist id="singer-options"></datalist>
                         </div>
 
                         <div>
@@ -161,7 +162,7 @@
                             <div class="mt-2 text-xs text-gray-400 text-right" id="singer-count-display"></div>
                         </div>
 
-                        <!-- Search Box -->
+                        <!-- Search Box (Modified) -->
                         <div>
                             <label class="block text-xs font-bold text-gray-500 mb-2">リスト内検索</label>
                             <div class="flex gap-2">
@@ -179,7 +180,7 @@
                             </div>
                         </div>
 
-                        <!-- Tag Filter -->
+                        <!-- Tag Filter (New) -->
                         <div>
                             <label class="block text-xs font-bold text-gray-500 mb-2">絞り込み</label>
                             <div class="flex flex-wrap gap-3">
@@ -304,7 +305,24 @@
                 </h3>
                 <button onclick="app.closeRoomModal()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x"></i></button>
             </div>
+
+            <!-- Search Mode Toggle -->
             <div class="mb-4">
+                <label class="block text-xs font-bold text-gray-500 mb-2">検索方式の設定 (基本)</label>
+                <div class="flex gap-4">
+                    <label class="flex items-center gap-1.5 text-sm cursor-pointer">
+                        <input type="radio" name="search-type" value="yukarister" onchange="app.setSearchType(this.value)" class="text-green-500 focus:ring-green-500">
+                        <span class="text-gray-700">ゆかりすたー検索</span>
+                    </label>
+                    <label class="flex items-center gap-1.5 text-sm cursor-pointer">
+                        <input type="radio" name="search-type" value="everything" onchange="app.setSearchType(this.value)" class="text-green-500 focus:ring-green-500">
+                        <span class="text-gray-700">Everything検索</span>
+                    </label>
+                </div>
+                <p class="text-[10px] text-gray-400 mt-1">※ポート番号 11058, 11060 を選択した場合は自動的にEverything検索になります。</p>
+            </div>
+
+            <div class="mb-4 pt-4 border-t border-gray-100">
                 <label class="block text-xs font-bold text-gray-500 mb-1">ポート番号を直接入力 (任意)</label>
                 <div class="flex gap-2">
                     <input type="number" id="room-input-port" placeholder="11059" class="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500">
@@ -368,11 +386,12 @@
                 11000: "ゆーふうりん部屋", 11001: "ゆーふうりん部屋", 11002: "ゆーふうりん部屋", 11003: "ゆーふうりん部屋", 11004: "ゆーふうりん部屋",
                 11005: "ゆーふうりん部屋", 11006: "ゆーふうりん部屋", 11007: "ゆーふうりん部屋", 11008: "ゆーふうりん部屋", 11009: "ゆーふうりん部屋",
                 11012: "加古部屋", 11021: "成田部屋", 11022: "成田部屋", 11028: "タマ部屋", 11058: "すみた部屋", 11059: "つぼはち部屋",
+                11060: "れん部屋", 11061: "百合川部屋",
                 11063: "なぎ部屋", 11064: "naoo部屋", 11066: "芝ちゃん部屋", 11067: "crom部屋", 11068: "けんしん部屋", 11069: "けんちぃ部屋",
-                11070: "黒河部屋", 11071: "黒河部屋", 11074: "tukinowa部屋", 11077: "v3部屋", 11078: "のんでるん部屋", 11079: "まどか部屋",
-                11084: "タカヒロ部屋", 11085: "タカヒロ部屋", 11086: "タカヒロ部屋", 11087: "MiO部屋", 11088: "ほっしー部屋",
+                11070: "黒河部屋", 11071: "黒河部屋", 11073: "コウ艦長部屋", 11074: "tukinowa部屋", 11077: "v3部屋", 11078: "のんでるん部屋", 11079: "まどか部屋",
+                11082: "ヤマテル部屋", 11084: "タカヒロ部屋", 11085: "タカヒロ部屋", 11086: "タカヒロ部屋", 11087: "MiO部屋", 11088: "ほっしー部屋",
                 11091: "千秋部屋", 11092: "ヒロ部屋", 11101: "えみち部屋", 11102: "るえ部屋", 11103: "ながし部屋", 11104: "MrN部屋",
-                11105: "ヤマテル部屋", 11106: "冨塚部屋", 11107: "ブルーベリー部屋", 11108: "コタ部屋", 11109: "姫部屋"
+                11105: "ヤマテル部屋", 11106: "遠見塚部屋", 11107: "ブルーベリー部屋"
             };
 
             // State
@@ -382,6 +401,7 @@
             let activeTab = 'ALL';
             let searchQuery = '';
             let targetPort = parseInt(localStorage.getItem('targetPort')) || 11059;
+            let targetSearchType = localStorage.getItem('targetSearchType') || 'yukarister';
             let currentPage = 1;
             let editingId = null; 
             let filterTags = { isPartDivision: false, isPracticing: false, isReviewNeeded: false };
@@ -497,9 +517,15 @@
                         // 検索条件は 曲名 + 作品名 のみにする (歌手名は不要)
                         const searchParam = encodeURIComponent((song.song + ' ' + cleanWork).trim());
                         
-                        // ポート番号による検索URLの切り替え
+                        // ポート番号と検索方式によるURLの切り替え
                         let searchUrl = '';
-                        if (targetPort === 11058) {
+                        let currentEngine = targetSearchType;
+                        // 特定の部屋は強制的にEverything検索にする
+                        if (targetPort === 11058 || targetPort === 11060) {
+                            currentEngine = 'everything';
+                        }
+
+                        if (currentEngine === 'everything') {
                             searchUrl = `http://ykr.moe:${targetPort}/search.php?searchword=${searchParam}`;
                         } else {
                             searchUrl = `http://ykr.moe:${targetPort}/search_listerdb_filelist.php?anyword=${searchParam}`;
@@ -571,7 +597,18 @@
                 }
             }
 
+            // 検索方式の切り替え
+            function setSearchType(type) {
+                targetSearchType = type;
+                localStorage.setItem('targetSearchType', type);
+                render();
+            }
+
             function openRoomModal() {
+                // Radio Button の設定状態を反映
+                const radioBtn = document.querySelector(`input[name="search-type"][value="${targetSearchType}"]`);
+                if (radioBtn) radioBtn.checked = true;
+
                 let html = '';
                 for (const [port, name] of Object.entries(ROOMS)) {
                     const isSelected = parseInt(port) === targetPort;
@@ -910,7 +947,7 @@
                 addSong, deleteSong, moveSong, setActiveTab, setPage,
                 saveToGAS, loadFromGAS, handleJSONImport, handleCSVImport, triggerSearch, setSearchQuery, toggleClearButton, clearSearch,
                 openRoomModal, closeRoomModal, selectPort, setCustomPort, saveSong, editSong, cancelEdit, toggleFilterTag,
-                openCSVModal, closeCSVModal, exportCSV, triggerRender, togglePrivateInput
+                openCSVModal, closeCSVModal, exportCSV, triggerRender, togglePrivateInput, setSearchType
             };
         })();
     </script>
