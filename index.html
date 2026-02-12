@@ -124,6 +124,16 @@
                                 <input type="checkbox" id="input-review-needed" class="w-4 h-4 text-yellow-500 bg-gray-50 border-gray-300 rounded focus:ring-yellow-400 cursor-pointer">
                                 <label for="input-review-needed" class="text-xs text-gray-600 cursor-pointer select-none font-medium">要復習</label>
                             </div>
+                            <!-- 非公開機能 -->
+                            <div class="flex items-center gap-1.5 w-full mt-1 border-t border-gray-100 pt-2">
+                                <input type="checkbox" id="input-private" onchange="app.togglePrivateInput()" class="w-4 h-4 text-purple-500 bg-gray-50 border-gray-300 rounded focus:ring-purple-400 cursor-pointer">
+                                <label for="input-private" class="text-xs text-gray-600 cursor-pointer select-none font-medium">非公開設定</label>
+                            </div>
+                            <!-- パスワード入力欄 (非公開チェック時のみ表示) -->
+                            <div id="private-password-container" class="hidden w-full transition-all">
+                                <input type="text" id="input-view-password" placeholder="閲覧用パスワードを設定"
+                                    class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all">
+                            </div>
                         </div>
 
                         <button onclick="app.saveSong()" id="submit-btn" class="w-full py-2.5 mt-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg shadow-md hover:shadow-lg transition-all active:scale-[0.98]">
@@ -186,6 +196,20 @@
                                     <input type="checkbox" id="filter-review-needed" onchange="app.toggleFilterTag('isReviewNeeded')" class="w-3.5 h-3.5 text-yellow-500 bg-gray-50 border-gray-300 rounded focus:ring-yellow-400 cursor-pointer">
                                     <label for="filter-review-needed" class="text-xs text-gray-600 cursor-pointer select-none">要復習</label>
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- View Password Filter -->
+                        <div class="pt-2 border-t border-gray-100 mt-2">
+                            <label class="block text-xs font-bold text-gray-500 mb-2">非公開リスト閲覧</label>
+                            <div class="flex gap-2">
+                                <div class="relative flex-1">
+                                    <input type="password" id="filter-view-password" placeholder="パスワードを入力" onkeydown="if(event.key==='Enter') app.triggerRender()"
+                                        class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all">
+                                </div>
+                                <button onclick="app.triggerRender()" class="px-3 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg transition-colors flex items-center gap-1 text-sm font-bold active:scale-95">
+                                    適用
+                                </button>
                             </div>
                         </div>
 
@@ -302,7 +326,7 @@
                 <i data-lucide="file-spreadsheet" class="text-green-600"></i> CSV操作
             </h3>
             <div class="space-y-3">
-                <p class="text-xs text-gray-500 text-left mb-2">用途に合わせて出力形式を選択してください。</p>
+                <p class="text-xs text-gray-500 text-left mb-2">用途に合わせて出力形式を選択してください。<br>※非公開設定の曲はエクスポートされません。</p>
                 
                 <button onclick="app.exportCSV(true)" class="w-full py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors border border-blue-200">
                     <i data-lucide="download"></i> 全件エクスポート (バックアップ)
@@ -336,9 +360,9 @@
 
             const ITEMS_PER_PAGE = 10;
             const initialData = [
-                { id: 1, singer: '月見ヤチヨ', work: 'Orbit', artist: 'yuigot', song: 'Remember' },
-                { id: 2, singer: '月見ヤチヨ', work: 'Orbit', artist: 'Aqu3ra', song: '星降る海' },
-                { id: 3, singer: 'V.A.', work: 'Compilation', artist: 'Unknown', song: '私は、わたしの事が好き。' },
+                { id: 1, singer: '月見ヤチヨ', work: 'Orbit', artist: 'yuigot', song: 'Remember', isPrivate: false, viewPassword: '' },
+                { id: 2, singer: '月見ヤチヨ', work: 'Orbit', artist: 'Aqu3ra', song: '星降る海', isPrivate: false, viewPassword: '' },
+                { id: 3, singer: 'V.A.', work: 'Compilation', artist: 'Unknown', song: '私は、わたしの事が好き。', isPrivate: false, viewPassword: '' },
             ];
 
             const ROOMS = {
@@ -381,8 +405,12 @@
                     song: document.getElementById('input-song'),
                     partDivision: document.getElementById('input-part-division'),
                     practicing: document.getElementById('input-practicing'),
-                    reviewNeeded: document.getElementById('input-review-needed')
+                    reviewNeeded: document.getElementById('input-review-needed'),
+                    isPrivate: document.getElementById('input-private'),
+                    viewPassword: document.getElementById('input-view-password')
                 },
+                privatePasswordContainer: document.getElementById('private-password-container'),
+                filterViewPassword: document.getElementById('filter-view-password'),
                 searchInput: document.getElementById('list-search-input'),
                 searchClearBtn: document.getElementById('search-clear-btn'),
                 form: {
@@ -421,7 +449,19 @@
                 const roomName = ROOMS[targetPort] ? ROOMS[targetPort] : 'カスタム部屋';
                 els.roomNameDisplay.innerText = `${roomName} (${targetPort})`;
 
-                let filteredSongs = songs;
+                // フィルターロジック
+                const currentViewPassword = els.filterViewPassword.value.trim();
+                
+                let filteredSongs = songs.filter(s => {
+                    // 非公開曲の表示判定
+                    if (s.isPrivate) {
+                        if (!currentViewPassword || s.viewPassword !== currentViewPassword) {
+                            return false; // パスワード不一致または未入力なら非表示
+                        }
+                    }
+                    return true;
+                });
+
                 if (activeTab !== 'ALL') {
                     filteredSongs = filteredSongs.filter(s => s.singer === activeTab);
                 }
@@ -454,7 +494,11 @@
                 } else {
                     els.songList.innerHTML = displaySongs.map((song, i) => {
                         const displayIndex = filteredSongs.length - (startIdx + i);
-                        const searchParam = encodeURIComponent((song.song + ' ' + (song.work||'') + ' ' + (song.artist||'')).trim());
+                        
+                        // 検索URL用のパラメータクリーニング (作品名の末尾の()や【】を消す)
+                        const cleanWork = (song.work || '').replace(/\s*[\(（【~～].*$/, '').trim();
+                        // 検索条件は 曲名 + 作品名 のみにする (歌手名は不要)
+                        const searchParam = encodeURIComponent((song.song + ' ' + cleanWork).trim());
                         
                         // ポート番号による検索URLの切り替え
                         let searchUrl = '';
@@ -468,6 +512,7 @@
                         if (song.isPartDivision) labels += '<span class="text-red-400 opacity-80 text-xs ml-1 font-normal break-keep">(パート分け)</span>';
                         if (song.isPracticing) labels += '<span class="text-blue-500 opacity-80 text-xs ml-1 font-normal break-keep">(練習中)</span>';
                         if (song.isReviewNeeded) labels += '<span class="text-yellow-600 opacity-90 text-xs ml-1 font-normal break-keep">(要復習)</span>';
+                        if (song.isPrivate) labels += '<span class="text-gray-400 opacity-80 text-xs ml-1 font-normal break-keep">(非公開)</span>';
 
                         const isEditing = song.id === editingId;
                         const rowClass = isEditing ? 'bg-blue-50 border-blue-300' : 'bg-white border-gray-100 hover:shadow-md hover:border-blue-200';
@@ -519,6 +564,15 @@
             function setSearchQuery(query) { searchQuery = query; currentPage = 1; render(); }
             function clearSearch() { els.searchInput.value = ''; toggleClearButton(''); triggerSearch(); }
             function toggleFilterTag(key) { filterTags[key] = !filterTags[key]; currentPage = 1; render(); }
+            function triggerRender() { currentPage = 1; render(); } // パスワード適用ボタン用
+
+            function togglePrivateInput() {
+                if (els.inputs.isPrivate.checked) {
+                    els.privatePasswordContainer.classList.remove('hidden');
+                } else {
+                    els.privatePasswordContainer.classList.add('hidden');
+                }
+            }
 
             function openRoomModal() {
                 let html = '';
@@ -549,7 +603,9 @@
                     song: songName,
                     isPartDivision: els.inputs.partDivision.checked,
                     isPracticing: els.inputs.practicing.checked,
-                    isReviewNeeded: els.inputs.reviewNeeded.checked
+                    isReviewNeeded: els.inputs.reviewNeeded.checked,
+                    isPrivate: els.inputs.isPrivate.checked,
+                    viewPassword: els.inputs.viewPassword.value.trim()
                 };
                 if (editingId) {
                     const index = songs.findIndex(s => s.id === editingId);
@@ -572,6 +628,10 @@
                 els.inputs.partDivision.checked = song.isPartDivision || false;
                 els.inputs.practicing.checked = song.isPracticing || false;
                 els.inputs.reviewNeeded.checked = song.isReviewNeeded || false;
+                els.inputs.isPrivate.checked = song.isPrivate || false;
+                els.inputs.viewPassword.value = song.viewPassword || '';
+                togglePrivateInput();
+
                 editingId = id;
                 els.form.titleText.innerText = "登録情報を編集";
                 els.form.icon.setAttribute('data-lucide', 'edit-3');
@@ -587,6 +647,8 @@
             function resetForm() {
                 els.inputs.song.value = ''; els.inputs.work.value = ''; els.inputs.artist.value = '';
                 els.inputs.partDivision.checked = false; els.inputs.practicing.checked = false; els.inputs.reviewNeeded.checked = false;
+                els.inputs.isPrivate.checked = false; els.inputs.viewPassword.value = '';
+                togglePrivateInput();
                 editingId = null;
                 els.form.titleText.innerText = "新規登録";
                 els.form.icon.setAttribute('data-lucide', 'plus');
@@ -609,7 +671,14 @@
             function moveSong(id, direction) {
                 const globalIndex = songs.findIndex(s => s.id === id);
                 if (globalIndex === -1) return;
-                let currentList = songs;
+
+                // フィルターされたリスト上での位置関係を取得
+                const currentViewPassword = els.filterViewPassword.value.trim();
+                let currentList = songs.filter(s => {
+                    if (s.isPrivate && (!currentViewPassword || s.viewPassword !== currentViewPassword)) return false;
+                    return true;
+                });
+                
                 if (activeTab !== 'ALL') currentList = currentList.filter(s => s.singer === activeTab);
                 if (searchQuery) {
                      const queries = searchQuery.toLowerCase().replace(/　/g, ' ').split(' ').filter(q => q);
@@ -643,7 +712,9 @@
                 const csvRows = [header.join(',')];
                 
                 if (withData) {
-                    songs.forEach(s => {
+                    // 非公開の曲はエクスポートしない
+                    const exportableSongs = songs.filter(s => !s.isPrivate);
+                    exportableSongs.forEach(s => {
                         const row = [ s.singer||'', s.work||'', s.artist||'', s.song||'', s.isPartDivision?'1':'', s.isPracticing?'1':'', s.isReviewNeeded?'1':'' ].map(field => {
                             const stringField = String(field);
                             return (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n')) ? `"${stringField.replace(/"/g, '""')}"` : stringField;
@@ -759,10 +830,12 @@
                     );
 
                     if (existingIndex !== -1) {
+                        // 既存データの更新（非公開設定などのCSVにない情報は保持する）
                         songs[existingIndex] = { ...songs[existingIndex], work: newWork, artist: newArtist, isPartDivision: isPart, isPracticing: isPrac, isReviewNeeded: isRev };
                         updatedCount++;
                     } else {
-                        songs.push({ id: Date.now() + Math.random(), singer: newSinger, work: newWork, artist: newArtist, song: newSong, isPartDivision: isPart, isPracticing: isPrac, isReviewNeeded: isRev });
+                        // 新規追加
+                        songs.push({ id: Date.now() + Math.random(), singer: newSinger, work: newWork, artist: newArtist, song: newSong, isPartDivision: isPart, isPracticing: isPrac, isReviewNeeded: isRev, isPrivate: false, viewPassword: '' });
                         addedCount++;
                     }
                 });
@@ -840,7 +913,7 @@
                 addSong, deleteSong, moveSong, setActiveTab, setPage,
                 saveToGAS, loadFromGAS, handleJSONImport, handleCSVImport, triggerSearch, setSearchQuery, toggleClearButton, clearSearch,
                 openRoomModal, closeRoomModal, selectPort, setCustomPort, saveSong, editSong, cancelEdit, toggleFilterTag,
-                openCSVModal, closeCSVModal, exportCSV
+                openCSVModal, closeCSVModal, exportCSV, triggerRender, togglePrivateInput
             };
         })();
     </script>
