@@ -152,7 +152,7 @@
                             <div class="mt-2 text-xs text-gray-400 text-right" id="singer-count-display"></div>
                         </div>
 
-                        <!-- Search Box (Modified) -->
+                        <!-- Search Box -->
                         <div>
                             <label class="block text-xs font-bold text-gray-500 mb-2">リスト内検索</label>
                             <div class="flex gap-2">
@@ -170,7 +170,7 @@
                             </div>
                         </div>
 
-                        <!-- Tag Filter (New) -->
+                        <!-- Tag Filter -->
                         <div>
                             <label class="block text-xs font-bold text-gray-500 mb-2">絞り込み</label>
                             <div class="flex flex-wrap gap-3">
@@ -455,7 +455,14 @@
                     els.songList.innerHTML = displaySongs.map((song, i) => {
                         const displayIndex = filteredSongs.length - (startIdx + i);
                         const searchParam = encodeURIComponent((song.song + ' ' + (song.work||'') + ' ' + (song.artist||'')).trim());
-                        const searchUrl = `http://ykr.moe:${targetPort}/search_listerdb_filelist.php?anyword=${searchParam}`;
+                        
+                        // ポート番号による検索URLの切り替え
+                        let searchUrl = '';
+                        if (targetPort === 11058) {
+                            searchUrl = `http://ykr.moe:${targetPort}/search.php?searchword=${searchParam}`;
+                        } else {
+                            searchUrl = `http://ykr.moe:${targetPort}/search_listerdb_filelist.php?anyword=${searchParam}`;
+                        }
                         
                         let labels = '';
                         if (song.isPartDivision) labels += '<span class="text-red-400 opacity-80 text-xs ml-1 font-normal break-keep">(パート分け)</span>';
@@ -650,7 +657,6 @@
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                // ファイル名を変更: データありなら日付入り、なしならテンプレート名
                 a.download = withData 
                     ? `karaoke_list_backup_${new Date().toISOString().slice(0,10)}.csv` 
                     : `karaoke_list_template.csv`;
@@ -693,7 +699,6 @@
 
             function normalizeStr(str) {
                 if (!str) return '';
-                // Normalize to NFKC, replace full-width space with half-width, trim
                 return str.normalize('NFKC').replace(/[\s\u3000]+/g, ' ').trim();
             }
 
@@ -716,7 +721,7 @@
                         } else { currentField += char; }
                     }
                     row.push(currentField);
-                    row = row.map(f => f.trim()); // Basic trim
+                    row = row.map(f => f.trim()); 
 
                     if (row.length < 4) return;
 
@@ -730,9 +735,6 @@
                     let isPrac = (row[5] === '1' || row[5]?.toLowerCase() === 'true');
                     let isRev = (row[6] === '1' || row[6]?.toLowerCase() === 'true');
 
-                    // CLEANUP LOGIC: Specified patterns only
-                    // Patterns: (パート分け), (練習中), (要復習) and their full-width versions
-                    
                     const patterns = [
                         { regex: /[\(（]パート分け[\)）]/, key: 'part' },
                         { regex: /[\(（]練習中[\)）]/, key: 'prac' },
@@ -748,7 +750,6 @@
                         }
                     });
                     
-                    // Normalize for comparison
                     const normSinger = normalizeStr(newSinger);
                     const normSong = normalizeStr(newSong);
 
