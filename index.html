@@ -91,9 +91,8 @@
                     <div class="space-y-3">
                         <div class="relative">
                             <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Singer</label>
-                            <input type="text" id="input-singer" list="singer-options" placeholder="歌唱者名を入力または選択"
+                            <input type="text" id="input-singer" placeholder="歌唱者名を入力"
                                 class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
-                            <datalist id="singer-options"></datalist>
                         </div>
 
                         <div>
@@ -393,7 +392,6 @@
                 songList: document.getElementById('song-list-container'),
                 songCount: document.getElementById('song-count'),
                 listTitle: document.getElementById('list-title'),
-                singerOptions: document.getElementById('singer-options'),
                 pagination: document.getElementById('pagination-container'),
                 roomNameDisplay: document.getElementById('current-room-name'),
                 roomInputPort: document.getElementById('room-input-port'),
@@ -444,7 +442,6 @@
                 }
                 
                 els.singerCountDisplay.innerText = `登録数: ${uniqueSingers.length}人`;
-                els.singerOptions.innerHTML = uniqueSingers.map(s => `<option value="${s}"></option>`).join('');
 
                 const roomName = ROOMS[targetPort] ? ROOMS[targetPort] : 'カスタム部屋';
                 els.roomNameDisplay.innerText = `${roomName} (${targetPort})`;
