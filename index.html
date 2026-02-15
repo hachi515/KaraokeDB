@@ -397,7 +397,7 @@
                 11063: "なぎ部屋", 11064: "naoo部屋", 11066: "芝ちゃん部屋", 11067: "crom部屋", 11068: "けんしん部屋", 11069: "けんちぃ部屋",
                 11070: "黒河部屋", 11071: "黒河部屋", 11073: "コウ艦長部屋", 11074: "tukinowa部屋", 11077: "v3部屋", 11078: "のんでるん部屋", 11079: "まどか部屋",
                 11082: "ヤマテル部屋", 11084: "タカヒロ部屋", 11085: "タカヒロ部屋", 11086: "タカヒロ部屋", 11087: "MiO部屋", 11088: "ほっしー部屋",
-                11101: "えみち部屋", 11102: "るえ部屋", 11103: "ながし部屋", 11104: "MrN部屋",
+                11091: "千秋部屋", 11092: "ヒロ部屋", 11101: "えみち部屋", 11102: "るえ部屋", 11103: "ながし部屋", 11104: "MrN部屋",
                 11105: "ヤマテル部屋", 11106: "遠見塚部屋", 11107: "ブルーベリー部屋"
             };
 
@@ -412,6 +412,15 @@
             let currentPage = 1;
             let editingId = null; 
             let filterTags = { isPartDivision: false, isPracticing: false, isReviewNeeded: false };
+            
+            // Internal GitHub Config (Hardcoded as requested)
+            const githubConfig = {
+                token: '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',
+                owner: 'hachi515',
+                repo: 'KaraokeDB',
+                path: 'backup/karaoke_list_backup.json'
+            };
+            let forceOverwriteMode = false;
 
             const els = {
                 singerFilterSelect: document.getElementById('singer-filter-select'),
@@ -552,7 +561,7 @@
                         <div class="group grid grid-cols-12 gap-2 md:gap-4 px-2 md:px-4 py-3 mb-1 items-center border rounded-lg transition-all duration-200 ${rowClass}">
                             <div class="col-span-1 text-center text-gray-400 font-mono text-xs md:text-sm group-hover:text-blue-500">${displayIndex}</div>
                             <!-- 曲名サイズを text-xs md:text-sm に修正（小さく） -->
-                            <div class="col-span-4 md:col-span-5 min-w-0"><div class="font-bold text-gray-800 text-xs md:text-sm break-words whitespace-normal leading-tight">${song.song}${labels}</div></div>
+                            <div class="col-span-4 md:col-span-5 min-w-0"><div class="font-bold text-gray-800 text-sm md:text-base break-words whitespace-normal leading-tight">${song.song}${labels}</div></div>
                             <div class="col-span-4 md:col-span-4 min-w-0 flex flex-col justify-center pr-8">
                                 <div class="text-[10px] md:text-xs text-gray-600 flex items-center gap-1 flex-wrap"><i data-lucide="mic" class="w-3 h-3 text-gray-400 flex-shrink-0"></i><span class="break-words whitespace-normal leading-tight">${song.singer || '-'}</span></div>
                                 <div class="text-[10px] text-gray-400 mt-0.5 break-words whitespace-normal leading-tight">${song.artist || ''} ${song.work ? '/ ' + song.work : ''}</div>
@@ -787,8 +796,10 @@
                     try {
                         const importedData = JSON.parse(e.target.result);
                         if (Array.isArray(importedData)) {
-                            showDialog(`ファイルから ${importedData.length} 件のデータを読み込みました (JSON)。\n反映するには「同期して保存」を押してください。`, 'alert');
-                            songs = importedData; render();
+                            showDialog(`ファイルから ${importedData.length} 件のデータを読み込みました (JSON)。\n反映するには「同期して保存」を押してください。\n(次回保存時にサーバーのデータを完全に上書きします)`, 'alert');
+                            songs = importedData;
+                            forceOverwriteMode = true; // Enable overwrite mode
+                            render();
                         } else { showDialog('JSONデータの形式が正しくありません。', 'alert'); }
                     } catch (error) { showDialog('ファイルの読み込みに失敗しました。', 'alert'); }
                 };
@@ -888,22 +899,87 @@
 
             async function saveToGAS() {
                 if (!GAS_API_URL) { showDialog('GASのURLが設定されていません。', 'alert'); return; }
+                if (songs.length < 3 && !forceOverwriteMode) { // Safety check against wiping out data with empty list (unless restoring)
+                    const isInitial = JSON.stringify(songs) === JSON.stringify(initialData);
+                    if(isInitial) {
+                         showDialog('初期データのため保存を中止しました。データを入力してください。', 'alert'); return;
+                    }
+                }
                 updateStatus('サーバーと同期中...', true);
+                
                 try {
-                    let serverSongs = [];
-                    try {
-                        const res = await fetch(GAS_API_URL + '?t=' + new Date().getTime());
-                        const text = await res.text();
-                        try { const data = JSON.parse(text); if (Array.isArray(data)) serverSongs = data; } catch(e) {}
-                    } catch(e) {}
-                    const localIds = new Set(songs.map(s => s.id));
-                    const newServerSongs = serverSongs.filter(s => !localIds.has(s.id) && !deletedIds.includes(s.id));
-                    const mergedSongs = [...songs, ...newServerSongs];
+                    let mergedSongs = songs;
+
+                    if (!forceOverwriteMode) {
+                        // Normal mode: Fetch and Merge
+                        let serverSongs = [];
+                        try {
+                            const res = await fetch(GAS_API_URL + '?t=' + new Date().getTime());
+                            if (!res.ok) throw new Error('Fetch failed');
+                            const text = await res.text();
+                            const data = JSON.parse(text);
+                            if (Array.isArray(data)) serverSongs = data;
+                        } catch(e) { 
+                            showDialog('サーバーからのデータ取得に失敗しました。保存を中止します。\n(インターネット接続やGASの状態を確認してください)', 'alert');
+                            updateStatus('保存中止');
+                            return; // Stop saving if fetch failed
+                        }
+
+                        const localIds = new Set(songs.map(s => s.id));
+                        const newServerSongs = serverSongs.filter(s => !localIds.has(s.id) && !deletedIds.includes(s.id));
+                        mergedSongs = [...songs, ...newServerSongs];
+                    } else {
+                        // Overwrite mode (after JSON restore): Use local songs as is
+                        console.log('Force overwrite mode active');
+                    }
+
                     songs = mergedSongs; render();
+                    
+                    // GAS Save
                     await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify(mergedSongs), headers: { "Content-Type": "text/plain;charset=utf-8" } });
+                    
+                    // GitHub Backup (if configured)
+                    if (githubConfig.token && githubConfig.repo) {
+                        saveToGitHub(mergedSongs);
+                    }
+
                     deletedIds = []; localStorage.setItem('deletedIds', JSON.stringify(deletedIds));
+                    forceOverwriteMode = false; // Reset mode
                     updateStatus('同期・保存完了！'); setTimeout(() => updateStatus(''), 3000);
+
                 } catch (error) { showDialog(`保存エラー: ${error.message}\nGASのデプロイ設定を確認してください。`, 'alert'); updateStatus('保存失敗'); }
+            }
+
+            async function saveToGitHub(data) {
+                const { token, owner, repo, path } = githubConfig;
+                const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+                const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
+                
+                try {
+                    // Get SHA
+                    let sha = null;
+                    try {
+                        const res = await fetch(apiUrl, { headers: { 'Authorization': `token ${token}` } });
+                        if (res.ok) { const json = await res.json(); sha = json.sha; }
+                    } catch(e) {}
+
+                    // Put
+                    await fetch(apiUrl, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `token ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            message: `Backup via WebApp ${new Date().toLocaleString()}`,
+                            content: content,
+                            sha: sha
+                        })
+                    });
+                    console.log('GitHub backup success');
+                } catch(e) {
+                    console.error('GitHub backup failed', e);
+                }
             }
 
             async function loadFromGAS(silent = false) {
@@ -962,5 +1038,3 @@
     </script>
 </body>
 </html>
-
-
