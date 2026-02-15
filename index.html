@@ -71,12 +71,18 @@
             </div>
         </div>
 
-        <!-- Terms / Warning Message -->
-        <div class="bg-white/50 backdrop-blur-sm border-x border-gray-200 px-4 py-2 text-center">
+        <!-- Terms / Warning Message / Tips -->
+        <div class="bg-white/50 backdrop-blur-sm border-x border-gray-200 px-4 py-2 text-center flex flex-col gap-2">
             <p class="text-[10px] sm:text-xs text-gray-800 font-bold leading-relaxed text-left">
                 ※マイリストの使用に当たり、本ツールはゆかりカラオケに参加する方のみでの利用でお願いします。<br class="hidden sm:inline">
                 第三者への共有時には本ツールの趣旨を踏まえて、ゆかりカラオケを利用するユーザーのみを対象にお願いします。
             </p>
+            <!-- 登録のコツ -->
+            <div class="text-[10px] text-gray-600 text-left bg-blue-50/80 p-2 rounded border border-blue-100 leading-relaxed">
+                <span class="font-bold text-blue-600">💡 登録のコツ</span><br>
+                ・サブタイトル等は <code>()</code> <code>（）</code> <code>【】</code> 等で括ると、検索時に自動除外されヒット率が上がります。<br>
+                ・<code>!</code> <code>！</code> <code>?</code> <code>？</code> 等の記号は検索時に無視されるため、全角/半角どちらでも大丈夫です。
+            </div>
         </div>
 
         <!-- Content -->
@@ -161,12 +167,15 @@
                                 <select id="singer-filter-select" onchange="app.setActiveTab(this.value)" 
                                     class="w-full pl-3 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer">
                                     <option value="ALL">全ての歌唱者を表示</option>
+                                    <!-- Options will be injected here -->
                                 </select>
                                 <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-gray-500">
                                     <i data-lucide="chevron-down" class="w-4 h-4"></i>
                                 </div>
                             </div>
-                            <div class="mt-2 text-xs text-gray-400 text-right" id="singer-count-display"></div>
+                            <div class="mt-2 text-xs text-gray-400 text-right" id="singer-count-display">
+                                <!-- Count display -->
+                            </div>
                         </div>
 
                         <!-- Search Box -->
@@ -253,16 +262,22 @@
                 </div>
 
                 <!-- List Body -->
-                <div id="song-list-container" class="flex-1 overflow-y-auto bg-white/30 custom-scrollbar p-2"></div>
+                <div id="song-list-container" class="flex-1 overflow-y-auto bg-white/30 custom-scrollbar p-2">
+                    <!-- Dynamic Content -->
+                </div>
 
                 <!-- Pagination -->
-                <div id="pagination-container" class="p-3 border-t border-gray-100 bg-white/50 flex justify-center items-center gap-4 text-sm"></div>
+                <div id="pagination-container" class="p-3 border-t border-gray-100 bg-white/50 flex justify-center items-center gap-4 text-sm">
+                    <!-- Dynamic Content -->
+                </div>
             </div>
         </div>
 
         <!-- Footer -->
         <div class="bg-white/90 backdrop-blur-md rounded-b-2xl shadow-sm border-t border-gray-200 p-4 flex justify-between items-center gap-2">
-             <div class="flex-1 text-xs text-gray-400 font-mono flex items-center gap-2" id="status-message"></div>
+             <div class="flex-1 text-xs text-gray-400 font-mono flex items-center gap-2" id="status-message">
+                <!-- Status text -->
+             </div>
              
              <!-- CSV Menu Button -->
              <button onclick="app.openCSVModal()" 
@@ -292,14 +307,16 @@
 
     <!-- Modals -->
     
-    <!-- Custom Dialog -->
+    <!-- Custom Dialog (Alert/Confirm replacement) -->
     <div id="custom-dialog" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 relative modal-animate text-center">
             <div id="dialog-icon" class="mx-auto w-12 h-12 flex items-center justify-center rounded-full bg-blue-100 text-blue-500 mb-4">
                 <i data-lucide="info"></i>
             </div>
             <p id="dialog-message" class="text-sm text-gray-700 font-medium mb-6 whitespace-pre-wrap"></p>
-            <div id="dialog-actions" class="flex gap-2 justify-center"></div>
+            <div id="dialog-actions" class="flex gap-2 justify-center">
+                <!-- Buttons injected via JS -->
+            </div>
         </div>
     </div>
 
@@ -326,7 +343,7 @@
                         <span class="text-gray-700">Everything検索</span>
                     </label>
                 </div>
-                <p class="text-[10px] text-gray-400 mt-1">※ポート番号 11058 を選択した場合は自動的にEverything検索になります。</p>
+                <p class="text-[10px] text-gray-400 mt-1">※ポート番号 11058(すみた部屋)、11060(れん部屋) を選択した場合は自動的にEverything検索になります。</p>
             </div>
 
             <div class="mb-4 pt-4 border-t border-gray-100">
@@ -337,7 +354,9 @@
                 </div>
             </div>
             <div class="flex-1 overflow-y-auto custom-scrollbar border-t border-gray-100 pt-4">
-                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" id="room-buttons-container"></div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" id="room-buttons-container">
+                    <!-- Buttons injected via JS -->
+                </div>
             </div>
         </div>
     </div>
@@ -415,7 +434,7 @@
             
             // GitHub Config (Internal)
             const githubConfig = {
-                token: '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', // Updated Token
+                token: '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', // Correct Token
                 owner: 'hachi515',
                 repo: 'KaraokeDB',
                 path: 'backup/karaoke_list_backup.json'
@@ -462,6 +481,17 @@
                 status: document.getElementById('status-message'),
                 refreshIcon: document.getElementById('refresh-icon')
             };
+
+            // String Cleaning Utility (Subtitles and Symbols)
+            function cleanForSearch(str) {
+                if (!str) return '';
+                let s = str;
+                // 1. Remove subtitles (text starting with parenthesis/brackets)
+                s = s.replace(/\s*[\(（【\[~～].*$/, '');
+                // 2. Remove specific symbols
+                s = s.replace(/[!！?？]/g, '');
+                return s.trim();
+            }
 
             function render() {
                 localStorage.setItem('myMusicList', JSON.stringify(songs));
@@ -525,12 +555,18 @@
                     els.songList.innerHTML = displaySongs.map((song, i) => {
                         const displayIndex = songs.indexOf(song) + 1;
                         
-                        const cleanWork = (song.work || '').replace(/\s*[\(（【~～].*$/, '').trim();
-                        const searchParam = encodeURIComponent((song.song + ' ' + cleanWork).trim());
+                        // Search parameter cleaning
+                        const cleanSong = cleanForSearch(song.song);
+                        const cleanWork = cleanForSearch(song.work);
+                        
+                        // Search Condition: Cleaned Song Name + Cleaned Work Name (No Artist)
+                        const searchParam = encodeURIComponent((cleanSong + ' ' + cleanWork).trim());
                         
                         let searchUrl = '';
                         let currentEngine = targetSearchType;
-                        if (targetPort === 11058) {
+                        
+                        // Exception: Ports 11058 & 11060 force "everything" search
+                        if (targetPort === 11058 || targetPort === 11060) {
                             currentEngine = 'everything';
                         }
 
@@ -671,6 +707,7 @@
                 els.inputs.isPrivate.checked = song.isPrivate || false;
                 els.inputs.viewPassword.value = song.viewPassword || '';
                 togglePrivateInput();
+
                 editingId = id;
                 els.form.titleText.innerText = "登録情報を編集";
                 els.form.icon.setAttribute('data-lucide', 'edit-3');
@@ -711,6 +748,7 @@
                 const globalIndex = songs.findIndex(s => s.id === id);
                 if (globalIndex === -1) return;
 
+                // フィルターされたリスト上での位置関係を取得
                 const currentViewPassword = els.filterViewPassword.value.trim();
                 let currentList = songs.filter(s => {
                     if (s.isPrivate && (!currentViewPassword || s.viewPassword !== currentViewPassword)) return false;
@@ -729,6 +767,7 @@
                 const visualIndex = currentList.findIndex(s => s.id === id);
                 if (visualIndex === -1) return;
                 let targetVisualIndex = -1;
+                // Old-New list, visual Up is index+1
                 if (direction === 'up' && visualIndex < currentList.length - 1) targetVisualIndex = visualIndex + 1;
                 if (direction === 'down' && visualIndex > 0) targetVisualIndex = visualIndex - 1;
 
@@ -749,6 +788,7 @@
                 const csvRows = [header.join(',')];
                 
                 if (withData) {
+                    // 非公開の曲はエクスポートしない
                     const exportableSongs = songs.filter(s => !s.isPrivate);
                     exportableSongs.forEach(s => {
                         const row = [ s.singer||'', s.work||'', s.artist||'', s.song||'', s.isPartDivision?'1':'', s.isPracticing?'1':'', s.isReviewNeeded?'1':'' ].map(field => {
