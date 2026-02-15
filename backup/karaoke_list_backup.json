@@ -1703,5 +1703,41 @@
     "isReviewNeeded": false,
     "isPrivate": false,
     "viewPassword": ""
+  },
+  {
+    "id": 1771122695939.0862,
+    "singer": "明（めい）",
+    "work": "破邪大星ダンガイオー",
+    "artist": "堀江美都子、水木一郎",
+    "song": "CROSS FIGHT!",
+    "isPartDivision": true,
+    "isPracticing": false,
+    "isReviewNeeded": false,
+    "isPrivate": false,
+    "viewPassword": ""
+  },
+  {
+    "id": 1771122837303.6821,
+    "singer": "明（めい）",
+    "work": "神魂合体ゴーダンナー!!",
+    "artist": "堀江美都子&水木一郎",
+    "song": "ENGAGE!!!ゴーダンナー",
+    "isPartDivision": true,
+    "isPracticing": false,
+    "isReviewNeeded": false,
+    "isPrivate": false,
+    "viewPassword": ""
+  },
+  {
+    "id": 1771122914545.7622,
+    "singer": "明（めい）",
+    "work": "神魂合体ゴーダンナー!!",
+    "artist": "堀江美都子&水木一郎",
+    "song": "塹壕の棺（ザンゴウノヒツギ）",
+    "isPartDivision": true,
+    "isPracticing": false,
+    "isReviewNeeded": false,
+    "isPrivate": false,
+    "viewPassword": ""
   }
 ]
